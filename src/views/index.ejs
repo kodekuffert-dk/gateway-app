@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <title>Gateway App</title>
+</head>
+<body>
+    <h1>Velkommen til Gateway App</h1>
+    <% if (user) { %>
+        <p>Du er logget ind som <%= user %></p>
+    <% } else { %>
+        <p>Du er ikke logget ind.</p>
+    <% } %>
+</body>
+</html>
