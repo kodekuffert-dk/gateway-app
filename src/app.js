@@ -21,10 +21,14 @@ app.use(session({
   cookie: { secure: false }
 }));
 
-// Example route
-app.get('/', (req, res) => {
-  res.render('index', { user: req.session.user || null });
-});
+const mainRoutes = require('./routes/main');
+const authRoutes = require('./routes/auth');
+
+// Routing setup
+// (flyttet til routes/main.js og routes/auth.js)
+
+app.use('/', mainRoutes);
+app.use('/', authRoutes);
 
 // Start server
 app.listen(PORT, () => {
