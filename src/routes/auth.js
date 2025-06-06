@@ -3,17 +3,17 @@ const router = express.Router();
 
 // Login GET
 router.get('/login', (req, res) => {
-  res.renderWithLayout('login', { title: 'Login' });
+  res.renderWithLayout('index', { title: 'Login', mode: 'login', error: null, email: '', showMenu: false });
 });
 
 // Login POST
 router.post('/login', (req, res) => {
-  const { username } = req.body;
-  if (username) {
-    req.session.user = username;
+  const { email } = req.body;
+  if (email) {
+    req.session.user = email;
     return res.redirect('/dashboard');
   }
-  res.renderWithLayout('login', { title: 'Login', error: 'Ugyldigt brugernavn' });
+  res.renderWithLayout('index', { title: 'Login', mode: 'login', error: 'Ugyldigt login', email: '', showMenu: false });
 });
 
 // Logout
@@ -29,7 +29,8 @@ router.get('/verify', (req, res) => {
     title: 'Bekræft email',
     mode: 'verify',
     error: null,
-    email: ''
+    email: '',
+    showMenu: false
   });
 });
 
@@ -41,7 +42,8 @@ router.post('/verify', (req, res) => {
       title: 'Bekræft email',
       mode: 'verify',
       error: 'Email og adgangskode skal udfyldes',
-      email
+      email,
+      showMenu: false
     });
   }
   // Her kan du indsætte logik til at oprette bruger og gemme password

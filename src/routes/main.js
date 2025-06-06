@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const authenticateStub = require('../middleware/authenticateStub');
 
 // Forside
 router.get('/', (req, res) => {
@@ -8,16 +9,17 @@ router.get('/', (req, res) => {
     user: req.session.user || null,
     mode: 'login',
     error: null,
-    email: ''
+    email: '',
+    showMenu: false
   });
 });
 
 // Dashboard (beskyttet)
-router.get('/dashboard', (req, res) => {
+router.get('/dashboard', authenticateStub, (req, res) => {
   if (!req.session.user) {
     return res.redirect('/login');
   }
-  res.renderWithLayout('dashboard', { title: 'Dashboard', user: req.session.user });
+  res.renderWithLayout('dashboard', { title: 'Dashboard', user: req.session.user, showMenu: true });
 });
 
 module.exports = router;

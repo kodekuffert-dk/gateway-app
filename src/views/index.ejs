@@ -1,50 +1,50 @@
+<!-- Branding og formular mv. uden container -->
 <div class="login-container">
-  <div class="container d-flex align-items-center justify-content-center min-vh-100">
-    <div class="card shadow-lg w-100" style="max-width: 420px;">
-      <div class="card-body">
-        <!-- Branding -->
-        <div class="text-center mb-4">
-          <!-- Du kan indsætte et logo her -->
-          <!-- <img src="/logo.png" alt="Kodekuffert logo" style="height: 60px;"> -->
-          <h1 class="brand-title">Kodekuffert</h1>
-          <p class="text-muted small">Adgang til dine materialer og øvelser</p>
-        </div>
-
-        <!-- Introduktion -->
-        <p class="text-center text-muted mb-4">
-          <%= mode === 'verify' ? "Bekræft din mail for første login." : "Log ind med din adgangskode." %>
-        </p>
-
-        <!-- Form -->
-        <form method="POST" action="<%= mode === 'verify' ? '/auth/verify' : '/auth/login' %>">
-          <div class="mb-3">
-            <label for="email" class="form-label">Email-adresse</label>
-            <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
-          </div>
-
-          <% if (mode !== 'verify') { %>
-            <div class="mb-3">
-              <label for="password" class="form-label">Adgangskode</label>
-              <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-          <% } %>
-
-          <div class="d-grid gap-2">
-            <button type="submit" class="kuffert-btn-primary">
-              <%= mode === 'verify' ? "Send bekræftelsesmail" : "Log ind" %>
-            </button>
-          </div>
-        </form>
-
-        <!-- Skift mellem login og verify -->
-        <div class="text-center mt-3">
-          <% if (mode === 'verify') { %>
-            <a href="/" class="text-secondary small">Tilbage til login</a>
-          <% } else { %>
-            <a href="/verify" class="text-secondary small">Første gang? Bekræft din mail</a>
-          <% } %>
-        </div>
-      </div>
+    <div class="card-body">
+    <!-- Branding -->
+    <div class="text-center mb-4">
+        <img src="/logo.jpg" alt="Kodekuffert logo" style="height: 150px; margin-bottom: 1rem;">
+        <p class="text-muted small">Adgang til dine materialer og øvelser</p>
     </div>
-  </div>
+
+    <!-- Introduktion -->
+    <p class="text-center text-muted mb-4">
+        <%= mode === 'verify' ? "Bekræft din mail for første login." : "Log ind med din adgangskode." %>
+    </p>
+
+    <!-- Fejlbesked -->
+    <% if (error) { %>
+        <div class="alert alert-danger text-center mb-3"><%= error %></div>
+    <% } %>
+
+    <!-- Form -->
+    <form method="POST" action="<%= mode === 'verify' ? '/verify' : '/login' %>">
+        <div class="mb-3">
+        <label for="email" class="form-label">Email-adresse</label>
+        <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
+        </div>
+
+        <% if (mode !== 'verify') { %>
+        <div class="mb-3">
+            <label for="password" class="form-label">Adgangskode</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <% } %>
+
+        <div class="d-grid gap-2">
+        <button type="submit" class="kuffert-btn-primary">
+            <%= mode === 'verify' ? "Send bekræftelsesmail" : "Log ind" %>
+        </button>
+        </div>
+    </form>
+
+    <!-- Skift mellem login og verify -->
+    <div class="text-center mt-3">
+        <% if (mode === 'verify') { %>
+        <a href="/" class="text-secondary small">Tilbage til login</a>
+        <% } else { %>
+        <a href="/verify" class="text-secondary small">Første gang? Bekræft din mail</a>
+        <% } %>
+    </div>
+    </div>
 </div>

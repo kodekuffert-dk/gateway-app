@@ -47,12 +47,14 @@ app.use((req, res, next) => {
 
 const mainRoutes = require('./routes/main');
 const authRoutes = require('./routes/auth');
+const contentRoutes = require('./routes/content');
 
 // Routing setup
 // (flyttet til routes/main.js og routes/auth.js)
 
 app.use('/', mainRoutes);
 app.use('/', authRoutes);
+app.use('/', contentRoutes);
 
 // Start server
 app.listen(PORT, () => {
