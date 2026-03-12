@@ -1,4 +1,9 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+const DEFAULT_USERS_FILE = process.env.USERS_FILE
+  || path.join(__dirname, '../../data/users.json');
 
 function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
@@ -32,6 +37,41 @@ function verifyPassword(password, storedHash) {
   return crypto.timingSafeEqual(storedKey, derivedKey);
 }
 
+function createFileAuthProvider(filePath) {
+  function loadUsers() {
+    try {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      return new Map(Object.entries(JSON.parse(raw)));
+    } catch {
+      return new Map();
+    }
+  }
+
+  function saveUsers(users) {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(Object.fromEntries(users), null, 2), 'utf8');
+  }
+
+  return {
+    createUser(email, password) {
+      const users = loadUsers();
+      const normalizedEmail = normalizeEmail(email);
+      const user = {
+        email: normalizedEmail,
+        passwordHash: hashPassword(password)
+      };
+
+      users.set(normalizedEmail, user);
+      saveUsers(users);
+      return user;
+    },
+    findUserByEmail(email) {
+      const users = loadUsers();
+      return users.get(normalizeEmail(email));
+    }
+  };
+}
+
 function createInMemoryAuthProvider() {
   const users = new Map();
 
@@ -52,7 +92,7 @@ function createInMemoryAuthProvider() {
   };
 }
 
-let authProvider = createInMemoryAuthProvider();
+let authProvider = createFileAuthProvider(DEFAULT_USERS_FILE);
 
 function setAuthProvider(provider) {
   if (!provider || typeof provider.createUser !== 'function' || typeof provider.findUserByEmail !== 'function') {
@@ -75,5 +115,6 @@ module.exports = {
   verifyPassword,
   isValidUcnEmail,
   setAuthProvider,
+  createFileAuthProvider,
   createInMemoryAuthProvider
 };

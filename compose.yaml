@@ -7,7 +7,7 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./data/articles:/app/data/articles
+      - ./data:/app/data
     environment:
       NODE_ENV: production
       PORT: ${PORT:-4000}
