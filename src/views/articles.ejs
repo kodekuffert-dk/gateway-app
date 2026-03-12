@@ -1,2 +1,73 @@
-<h2>Artikler</h2>
-<p>Her kommer dine artikler.</p>
+<div class="row g-4">
+	<div class="col-lg-4 col-xl-3">
+		<div class="card shadow-sm">
+			<div class="card-body">
+				<h2 class="h5 mb-3">Artikler</h2>
+
+				<% if (!articles || articles.length === 0) { %>
+					<p class="text-muted mb-0">Ingen artikler endnu.</p>
+				<% } else { %>
+					<div class="list-group">
+						<% articles.forEach((article) => { %>
+							<a
+								href="/articles?article=<%= encodeURIComponent(article.id) %>"
+								class="list-group-item list-group-item-action <%= selectedArticle && selectedArticle.id === article.id ? 'active' : '' %>"
+							>
+								<div class="fw-semibold"><%= article.title %></div>
+								<small class="opacity-75">Opdateret <%= new Date(article.updatedAt).toLocaleString('da-DK') %></small>
+							</a>
+						<% }) %>
+					</div>
+				<% } %>
+			</div>
+		</div>
+
+		<% if (isAdmin) { %>
+			<div class="card shadow-sm mt-4">
+				<div class="card-body">
+					<h3 class="h6 mb-3">Upload artikel</h3>
+					<form method="post" action="/articles/upload" enctype="multipart/form-data">
+						<div class="mb-3">
+							<label for="title" class="form-label">Titel (valgfri)</label>
+							<input id="title" name="title" type="text" class="form-control" />
+						</div>
+						<div class="mb-3">
+							<label for="articleFile" class="form-label">Markdown-fil (.md)</label>
+							<input id="articleFile" name="articleFile" type="file" accept=".md,text/markdown" class="form-control" required />
+						</div>
+						<button type="submit" class="btn kuffert-btn-primary w-100">Upload</button>
+					</form>
+				</div>
+			</div>
+		<% } %>
+	</div>
+
+	<div class="col-lg-8 col-xl-9">
+		<% if (error) { %>
+			<div class="alert alert-danger"><%= error %></div>
+		<% } %>
+
+		<% if (success) { %>
+			<div class="alert alert-success"><%= success %></div>
+		<% } %>
+
+		<div class="card shadow-sm">
+			<div class="card-body">
+				<% if (!selectedArticle) { %>
+					<h2 class="h4 mb-0">Vælg en artikel</h2>
+				<% } else { %>
+					<div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+						<h2 class="h3 mb-0"><%= selectedArticle.title %></h2>
+						<% if (isAdmin) { %>
+							<form method="post" action="/articles/delete" onsubmit="return confirm('Vil du slette denne artikel?');">
+								<input type="hidden" name="articleId" value="<%= selectedArticle.id %>" />
+								<button type="submit" class="btn btn-outline-danger btn-sm">Slet artikel</button>
+							</form>
+						<% } %>
+					</div>
+					<div class="article-content"><%- selectedArticleHtml %></div>
+				<% } %>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { createUser, findUserByEmail, verifyPassword, isValidUcnEmail } = require('../services/authStore');
 
 // Login GET
 router.get('/login', (req, res) => {
@@ -8,12 +9,41 @@ router.get('/login', (req, res) => {
 
 // Login POST
 router.post('/login', (req, res) => {
-  const { email } = req.body;
-  if (email) {
-    req.session.user = email;
-    return res.redirect('/dashboard');
+  const { email, password } = req.body || {};
+
+  if (!email || !password) {
+    return res.renderWithLayout('index', {
+      title: 'Login',
+      mode: 'login',
+      error: 'Email og adgangskode skal udfyldes',
+      email,
+      showMenu: false
+    });
   }
-  res.renderWithLayout('index', { title: 'Login', mode: 'login', error: 'Ugyldigt login', email: '', showMenu: false });
+
+  if (!isValidUcnEmail(email)) {
+    return res.renderWithLayout('index', {
+      title: 'Login',
+      mode: 'login',
+      error: 'Brug en @ucn.dk email',
+      email,
+      showMenu: false
+    });
+  }
+
+  const user = findUserByEmail(email);
+  if (!user || !verifyPassword(password, user.passwordHash)) {
+    return res.renderWithLayout('index', {
+      title: 'Login',
+      mode: 'login',
+      error: 'Ugyldigt login',
+      email,
+      showMenu: false
+    });
+  }
+
+  req.session.user = user.email;
+  return res.redirect('/dashboard');
 });
 
 // Logout
@@ -26,7 +56,7 @@ router.get('/logout', (req, res) => {
 // GET: Email verification form
 router.get('/verify', (req, res) => {
   res.renderWithLayout('index', {
-    title: 'Bekræft email',
+    title: 'Opret login',
     mode: 'verify',
     error: null,
     email: '',
@@ -36,19 +66,29 @@ router.get('/verify', (req, res) => {
 
 // POST: Handle email verification and password creation
 router.post('/verify', (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
   if (!email || !password) {
     return res.renderWithLayout('index', {
-      title: 'Bekræft email',
+      title: 'Opret login',
       mode: 'verify',
       error: 'Email og adgangskode skal udfyldes',
       email,
       showMenu: false
     });
   }
-  // Her kan du indsætte logik til at oprette bruger og gemme password
-  // For nu: Simpel mock, sæt session og redirect
-  req.session.user = email;
+
+  if (!isValidUcnEmail(email)) {
+    return res.renderWithLayout('index', {
+      title: 'Opret login',
+      mode: 'verify',
+      error: 'Brug en @ucn.dk email',
+      email,
+      showMenu: false
+    });
+  }
+
+  const user = createUser(email, password);
+  req.session.user = user.email;
   res.redirect('/dashboard');
 });
 

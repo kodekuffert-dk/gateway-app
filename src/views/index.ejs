@@ -9,7 +9,7 @@
 
     <!-- Introduktion -->
     <p class="text-center text-muted mb-4">
-        <%= mode === 'verify' ? "Bekræft din mail for første login." : "Log ind med din adgangskode." %>
+        <%= mode === 'verify' ? "Opret login med din UCN-mail og en adgangskode." : "Log ind med din adgangskode." %>
     </p>
 
     <!-- Fejlbesked -->
@@ -24,16 +24,14 @@
         <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
         </div>
 
-        <% if (mode !== 'verify') { %>
         <div class="mb-3">
             <label for="password" class="form-label">Adgangskode</label>
             <input type="password" class="form-control" id="password" name="password" required>
         </div>
-        <% } %>
 
         <div class="d-grid gap-2">
         <button type="submit" class="kuffert-btn-primary">
-            <%= mode === 'verify' ? "Send bekræftelsesmail" : "Log ind" %>
+            <%= mode === 'verify' ? "Opret login" : "Log ind" %>
         </button>
         </div>
     </form>
@@ -43,7 +41,7 @@
         <% if (mode === 'verify') { %>
         <a href="/" class="text-secondary small">Tilbage til login</a>
         <% } else { %>
-        <a href="/verify" class="text-secondary small">Første gang? Bekræft din mail</a>
+        <a href="/verify" class="text-secondary small">Første gang? Opret login</a>
         <% } %>
     </div>
     </div>

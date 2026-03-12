@@ -1,0 +1,16 @@
+services:
+  gateway-app:
+    build:
+      context: .
+    env_file:
+      - ./src/.env
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./data/articles:/app/data/articles
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-4000}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me}
+      ARTICLES_DIR: ${ARTICLES_DIR:-/app/data/articles}
+    restart: unless-stopped
