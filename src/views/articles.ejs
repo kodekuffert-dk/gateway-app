@@ -56,15 +56,14 @@
 				<% if (!selectedArticle) { %>
 					<h2 class="h4 mb-0">Vælg en artikel</h2>
 				<% } else { %>
-					<div class="d-flex align-items-start justify-content-between gap-3 mb-3">
-						<h2 class="h3 mb-0"><%= selectedArticle.title %></h2>
-						<% if (isAdmin) { %>
+					<% if (isAdmin) { %>
+						<div class="d-flex justify-content-end mb-3">
 							<form method="post" action="/articles/delete" onsubmit="return confirm('Vil du slette denne artikel?');">
 								<input type="hidden" name="articleId" value="<%= selectedArticle.id %>" />
 								<button type="submit" class="btn btn-outline-danger btn-sm">Slet artikel</button>
 							</form>
-						<% } %>
-					</div>
+						</div>
+					<% } %>
 					<div class="article-content"><%- selectedArticleHtml %></div>
 				<% } %>
 			</div>

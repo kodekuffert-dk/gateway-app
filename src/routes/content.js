@@ -70,6 +70,7 @@ async function renderArticlesPage(req, res, options = {}) {
     title: 'Artikler',
     user: req.session.user,
     showMenu: true,
+    pageStyles: ['/articles.css'],
     isAdmin: isAdminUser(req.session.user),
     articles: allArticles,
     selectedArticle,
