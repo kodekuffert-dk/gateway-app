@@ -33,19 +33,6 @@ function verifyPassword(password, storedHash) {
   return crypto.timingSafeEqual(storedKey, derivedKey);
 }
 
-function normalizeCourseIds(courseIdsInput) {
-  if (!Array.isArray(courseIdsInput)) {
-    if (!courseIdsInput) {
-      return [];
-    }
-    return [Number(courseIdsInput)].filter((id) => Number.isInteger(id) && id > 0);
-  }
-
-  return courseIdsInput
-    .map((id) => Number(id))
-    .filter((id) => Number.isInteger(id) && id > 0);
-}
-
 async function createUser({ email, password, name }) {
   const normalizedEmail = normalizeEmail(email);
   const normalizedName = String(name || '').trim();
@@ -86,14 +73,14 @@ async function listUsers() {
         u.name,
         u.team_id AS "teamId",
         t.name AS "teamName",
-        COALESCE(ARRAY_AGG(uc.course_id) FILTER (WHERE uc.course_id IS NOT NULL), '{}') AS "courseIds",
+        COALESCE(ARRAY_AGG(tc.course_id) FILTER (WHERE tc.course_id IS NOT NULL), '{}') AS "courseIds",
         COALESCE(ARRAY_AGG(c.title) FILTER (WHERE c.title IS NOT NULL), '{}') AS courses,
         u.created_at AS "createdAt",
         u.updated_at AS "updatedAt"
       FROM users u
       LEFT JOIN teams t ON t.id = u.team_id
-      LEFT JOIN user_courses uc ON uc.user_id = u.id
-      LEFT JOIN courses c ON c.id = uc.course_id
+      LEFT JOIN team_courses tc ON tc.team_id = t.id
+      LEFT JOIN courses c ON c.id = tc.course_id
       GROUP BY u.id, t.id
       ORDER BY u.email ASC
     `
@@ -102,12 +89,11 @@ async function listUsers() {
   return result.rows;
 }
 
-async function updateUser({ email, name, teamId, courseIds, password }) {
+async function updateUser({ email, name, teamId, password }) {
   const normalizedEmail = normalizeEmail(email);
   const normalizedName = String(name || '').trim();
   const parsedTeamId = teamId ? Number(teamId) : null;
   const normalizedTeamId = Number.isInteger(parsedTeamId) && parsedTeamId > 0 ? parsedTeamId : null;
-  const normalizedCourseIds = normalizeCourseIds(courseIds);
 
   return withTransaction(async (client) => {
     const userLookup = await client.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
@@ -143,14 +129,6 @@ async function updateUser({ email, name, teamId, courseIds, password }) {
       );
     }
 
-    await client.query('DELETE FROM user_courses WHERE user_id = $1', [userId]);
-    for (const courseId of normalizedCourseIds) {
-      await client.query(
-        'INSERT INTO user_courses (user_id, course_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [userId, courseId]
-      );
-    }
-
     const updated = await client.query(
       `
         SELECT
@@ -158,14 +136,14 @@ async function updateUser({ email, name, teamId, courseIds, password }) {
           u.name,
           u.team_id AS "teamId",
           t.name AS "teamName",
-          COALESCE(ARRAY_AGG(uc.course_id) FILTER (WHERE uc.course_id IS NOT NULL), '{}') AS "courseIds",
+          COALESCE(ARRAY_AGG(tc.course_id) FILTER (WHERE tc.course_id IS NOT NULL), '{}') AS "courseIds",
           COALESCE(ARRAY_AGG(c.title) FILTER (WHERE c.title IS NOT NULL), '{}') AS courses,
           u.created_at AS "createdAt",
           u.updated_at AS "updatedAt"
         FROM users u
         LEFT JOIN teams t ON t.id = u.team_id
-        LEFT JOIN user_courses uc ON uc.user_id = u.id
-        LEFT JOIN courses c ON c.id = uc.course_id
+        LEFT JOIN team_courses tc ON tc.team_id = t.id
+        LEFT JOIN courses c ON c.id = tc.course_id
         WHERE u.id = $1
         GROUP BY u.id, t.id
       `,
@@ -183,5 +161,4 @@ module.exports = {
   updateUser,
   verifyPassword,
   isValidUcnEmail,
-  normalizeCourseIds,
 };

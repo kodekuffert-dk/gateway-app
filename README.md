@@ -46,6 +46,7 @@ docker run --rm -p 4000:4000 -e SESSION_SECRET=change-me gateway-app
 - Brugeradministration for administratorer
 - Hold i egen tabel (`teams`) med startdato og slutdato
 - Kurser i egen tabel (`courses`) med titel og beskrivelse
+- Kurser tildeles hold (`team_courses`) og arves af brugere via deres hold
 
 ## Konfiguration
 Miljøvariabler kan defineres i `.env`, via shell-miljøet eller i `compose.yaml`.

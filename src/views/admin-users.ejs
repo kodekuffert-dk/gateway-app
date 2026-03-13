@@ -40,24 +40,6 @@
                   <% }) %>
                 </select>
               </div>
-              <div class="col-lg-3">
-                <label class="form-label form-label-sm">Kurser</label>
-                <div class="border rounded p-2" style="max-height: 130px; overflow-y: auto;">
-                  <% courses.forEach((course) => { %>
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="courseIds"
-                        value="<%= course.id %>"
-                        id="course-<%= row.email %>-<%= course.id %>"
-                        <%= (row.courseIds || []).map(Number).includes(Number(course.id)) ? 'checked' : '' %>
-                      >
-                      <label class="form-check-label small" for="course-<%= row.email %>-<%= course.id %>"><%= course.title %></label>
-                    </div>
-                  <% }) %>
-                </div>
-              </div>
               <div class="col-lg-2">
                 <label class="form-label form-label-sm">Ny adgangskode</label>
                 <input type="password" class="form-control form-control-sm" name="password" placeholder="Valgfri">
@@ -71,108 +53,7 @@
       <% } %>
     </div>
   </div>
-
-  <div class="row g-4">
-    <div class="col-xl-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-white">
-          <h2 class="h5 mb-0">Hold</h2>
-        </div>
-        <div class="card-body">
-          <form method="post" action="/admin/teams/create" class="border rounded p-3 mb-3">
-            <h3 class="h6">Opret hold</h3>
-            <div class="row g-2">
-              <div class="col-md-5">
-                <label class="form-label form-label-sm">Navn</label>
-                <input type="text" name="name" class="form-control form-control-sm" required>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label form-label-sm">Startdato</label>
-                <input type="date" name="startDate" class="form-control form-control-sm" required>
-              </div>
-              <div class="col-md-3">
-                <label class="form-label form-label-sm">Slutdato</label>
-                <input type="date" name="endDate" class="form-control form-control-sm">
-              </div>
-              <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-sm kuffert-btn-primary w-100">+</button>
-              </div>
-            </div>
-          </form>
-
-          <div class="d-flex flex-column gap-2">
-            <% teams.forEach((team) => { %>
-              <form method="post" action="/admin/teams/update" class="border rounded p-2">
-                <input type="hidden" name="id" value="<%= team.id %>">
-                <div class="row g-2 align-items-end">
-                  <div class="col-md-5">
-                    <label class="form-label form-label-sm">Navn</label>
-                    <input type="text" name="name" class="form-control form-control-sm" value="<%= team.name %>" required>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label form-label-sm">Startdato</label>
-                    <input type="date" name="startDate" class="form-control form-control-sm" value="<%= team.startDate ? String(team.startDate).slice(0, 10) : '' %>" required>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label form-label-sm">Slutdato</label>
-                    <input type="date" name="endDate" class="form-control form-control-sm" value="<%= team.endDate ? String(team.endDate).slice(0, 10) : '' %>">
-                  </div>
-                  <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-sm btn-outline-primary w-100">Gem</button>
-                  </div>
-                </div>
-              </form>
-            <% }) %>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-xl-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-white">
-          <h2 class="h5 mb-0">Kurser</h2>
-        </div>
-        <div class="card-body">
-          <form method="post" action="/admin/courses/create" class="border rounded p-3 mb-3">
-            <h3 class="h6">Opret kursus</h3>
-            <div class="row g-2">
-              <div class="col-md-4">
-                <label class="form-label form-label-sm">Titel</label>
-                <input type="text" name="title" class="form-control form-control-sm" required>
-              </div>
-              <div class="col-md-7">
-                <label class="form-label form-label-sm">Beskrivelse</label>
-                <input type="text" name="description" class="form-control form-control-sm">
-              </div>
-              <div class="col-md-1 d-flex align-items-end">
-                <button type="submit" class="btn btn-sm kuffert-btn-primary w-100">+</button>
-              </div>
-            </div>
-          </form>
-
-          <div class="d-flex flex-column gap-2">
-            <% courses.forEach((course) => { %>
-              <form method="post" action="/admin/courses/update" class="border rounded p-2">
-                <input type="hidden" name="id" value="<%= course.id %>">
-                <div class="row g-2 align-items-end">
-                  <div class="col-md-4">
-                    <label class="form-label form-label-sm">Titel</label>
-                    <input type="text" name="title" class="form-control form-control-sm" value="<%= course.title %>" required>
-                  </div>
-                  <div class="col-md-7">
-                    <label class="form-label form-label-sm">Beskrivelse</label>
-                    <input type="text" name="description" class="form-control form-control-sm" value="<%= course.description || '' %>">
-                  </div>
-                  <div class="col-md-1 d-flex align-items-end">
-                    <button type="submit" class="btn btn-sm btn-outline-primary w-100">Gem</button>
-                  </div>
-                </div>
-              </form>
-            <% }) %>
-          </div>
-        </div>
-      </div>
-    </div>
+  <div class="d-flex justify-content-end mt-3">
+    <a href="/admin/catalog" class="btn btn-outline-primary btn-sm">Administrer hold og kurser</a>
   </div>
 </div>
