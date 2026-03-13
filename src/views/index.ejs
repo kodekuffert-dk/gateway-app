@@ -9,7 +9,7 @@
 
     <!-- Introduktion -->
     <p class="text-center text-muted mb-4">
-        <%= mode === 'verify' ? "Opret login med din UCN-mail og en adgangskode." : "Log ind med din adgangskode." %>
+        <%= mode === 'verify' ? "Opret login med navn, UCN-mail og adgangskode." : "Log ind med din adgangskode." %>
     </p>
 
     <!-- Fejlbesked -->
@@ -23,6 +23,13 @@
         <label for="email" class="form-label">Email-adresse</label>
         <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
         </div>
+
+        <% if (mode === 'verify') { %>
+        <div class="mb-3">
+            <label for="name" class="form-label">Navn</label>
+            <input type="text" class="form-control" id="name" name="name" required value="<%= name || '' %>">
+        </div>
+        <% } %>
 
         <div class="mb-3">
             <label for="password" class="form-label">Adgangskode</label>

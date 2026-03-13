@@ -1,10 +1,5 @@
 function authenticateStub(req, res, next) {
-  let email = undefined;
-  if (req.session && req.session.user) {
-    email = req.session.user;
-  } else if (req.body && req.body.email) {
-    email = req.body.email;
-  }
+  const email = req.session && req.session.user;
   if (email && /@ucn\.dk$/i.test(email)) {
     return next();
   }

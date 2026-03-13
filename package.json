@@ -4,7 +4,8 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "migrate:users": "node src/scripts/migrateUsersJsonToDb.js"
   },
   "keywords": [],
   "author": "Lars Nysom (lany@ucn.dk)",
@@ -12,12 +13,14 @@
   "description": "Frontend-gateway i Node.js + Express. Kalder backend-services og håndterer auth/session.",
   "dependencies": {
     "axios": "^1.9.0",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^16.5.0",
     "ejs": "^3.1.10",
     "express": "^5.1.0",
-    "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.3",
     "marked": "^17.0.4",
     "multer": "^2.1.1",
+    "pg": "^8.16.3",
     "sanitize-html": "^2.17.1"
   },
   "devDependencies": {

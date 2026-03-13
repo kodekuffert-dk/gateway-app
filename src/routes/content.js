@@ -15,6 +15,7 @@ const {
   createCategory,
   softDeleteCategory
 } = require('../services/categoryStore');
+const { isAdminUser } = require('../utils/admin');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -26,18 +27,6 @@ const upload = multer({
     return callback(new Error('Kun Markdown-filer (.md) er tilladt'));
   }
 });
-
-function getAdminEmails() {
-  return (process.env.ADMIN_EMAILS || '')
-    .split(',')
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(email) {
-  const normalizedEmail = (email || '').trim().toLowerCase();
-  return getAdminEmails().includes(normalizedEmail);
-}
 
 let markedParser = null;
 
@@ -100,9 +89,9 @@ async function renderArticlesPage(req, res, options = {}) {
   res.renderWithLayout('articles', {
     title: 'Artikler',
     user: req.session.user,
+    isAdmin,
     showMenu: true,
     pageStyles: ['/articles.css'],
-    isAdmin,
     articles: filteredArticles,
     categories: activeCategories,
     allCategories,
@@ -119,6 +108,7 @@ router.get('/exercises', authenticateStub, (req, res) => {
   res.renderWithLayout('exercises', {
     title: 'Øvelser',
     user: req.session.user,
+    isAdmin: isAdminUser(req.session.user),
     showMenu: true
   });
 });
@@ -128,6 +118,7 @@ router.get('/tests', authenticateStub, (req, res) => {
   res.renderWithLayout('tests', {
     title: 'Tests',
     user: req.session.user,
+    isAdmin: isAdminUser(req.session.user),
     showMenu: true
   });
 });

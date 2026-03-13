@@ -43,6 +43,9 @@ docker run --rm -p 4000:4000 -e SESSION_SECRET=change-me gateway-app
 - Mulighed for mock-services under udvikling
 - Artikelside med visning af Markdown-artikler for alle loggede brugere
 - Upload af Markdown-artikler for administratorer
+- Brugeradministration for administratorer
+- Hold i egen tabel (`teams`) med startdato og slutdato
+- Kurser i egen tabel (`courses`) med titel og beskrivelse
 
 ## Konfiguration
 Miljøvariabler kan defineres i `.env`, via shell-miljøet eller i `compose.yaml`.
@@ -50,6 +53,18 @@ Miljøvariabler kan defineres i `.env`, via shell-miljøet eller i `compose.yaml
 Vigtige variabler:
 
 - `PORT` - porten Express lytter på. Standard er `4000`.
-- `SESSION_SECRET` - hemmelig nøgle til sessioner. Bør sættes til en stærk værdi uden for udvikling.
-- `ADMIN_EMAILS` - kommasepareret liste af admin-emails, som må uploade artikler (f.eks. `admin@ucn.dk,teacher@ucn.dk`).
+- `JWT_SECRET` - hemmelig nøgle til signering af JWT-cookie. Bør sættes til en stærk værdi uden for udvikling.
+- `JWT_EXPIRES_IN` - token-levetid, f.eks. `7d` (standard) eller `12h`.
+- `JWT_COOKIE_NAME` - navn på auth-cookie. Standard er `gateway_token`.
+- `SESSION_SECRET` - fallback hvis `JWT_SECRET` ikke er sat.
+- `DATABASE_URL` - connection string til PostgreSQL (default i compose peger på `postgres` service).
+- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - konfiguration for PostgreSQL-containeren.
+- `ADMIN_EMAILS` - kommasepareret liste af admin-mails med adgang til artikel- og brugeradministration.
 - `ARTICLES_DIR` - valgfri sti til mappe med Markdown-artikler. Standard er `src/data/articles`.
+
+## Databasemigrering (eksisterende data)
+Hvis du allerede har en kørende Postgres-volume, kan schema-migreringen køres manuelt:
+
+```bash
+docker compose exec -T postgres psql -U gateway -d gateway < db/migrations/002_normalize_teams_courses.sql
+```
