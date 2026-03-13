@@ -39,9 +39,33 @@ async function ensureArticlesDirectory() {
   return articlesDirectory;
 }
 
+async function getMetaFilePath() {
+  const articlesDirectory = await ensureArticlesDirectory();
+  return path.join(articlesDirectory, 'meta.json');
+}
+
+async function readMeta() {
+  const filePath = await getMetaFilePath();
+  try {
+    const raw = await fs.readFile(filePath, 'utf-8');
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error.code === 'ENOENT') return {};
+    throw error;
+  }
+}
+
+async function writeMeta(meta) {
+  const filePath = await getMetaFilePath();
+  await fs.writeFile(filePath, JSON.stringify(meta, null, 2), 'utf-8');
+}
+
 async function listArticles() {
   const articlesDirectory = await ensureArticlesDirectory();
-  const files = await fs.readdir(articlesDirectory, { withFileTypes: true });
+  const [files, meta] = await Promise.all([
+    fs.readdir(articlesDirectory, { withFileTypes: true }),
+    readMeta(),
+  ]);
 
   const markdownFiles = files
     .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.md'))
@@ -57,6 +81,7 @@ async function listArticles() {
       id: fileName,
       fileName,
       title: getTitleFromMarkdown(fileContent, fallbackTitle),
+      categoryId: (meta[fileName] && meta[fileName].categoryId) || null,
       updatedAt: stats.mtime
     };
   }));
@@ -93,7 +118,7 @@ async function getArticleById(articleId) {
   }
 }
 
-async function createArticleFromUpload({ originalName, markdownContent, title }) {
+async function createArticleFromUpload({ originalName, markdownContent, title, categoryId }) {
   const articlesDirectory = await ensureArticlesDirectory();
   const requestedTitle = normalizeText(title);
   const generatedBaseName = sanitizeFileBaseName(requestedTitle || originalName || 'artikel');
@@ -101,6 +126,12 @@ async function createArticleFromUpload({ originalName, markdownContent, title })
   const destinationPath = path.join(articlesDirectory, fileName);
 
   await fs.writeFile(destinationPath, markdownContent, 'utf-8');
+
+  if (categoryId) {
+    const meta = await readMeta();
+    meta[fileName] = { categoryId };
+    await writeMeta(meta);
+  }
 
   return {
     id: fileName,
@@ -120,6 +151,11 @@ async function deleteArticleById(articleId) {
 
   try {
     await fs.unlink(fullPath);
+    const meta = await readMeta();
+    if (meta[normalizedId]) {
+      delete meta[normalizedId];
+      await writeMeta(meta);
+    }
     return true;
   } catch (error) {
     if (error.code === 'ENOENT') {

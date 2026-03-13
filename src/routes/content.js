@@ -9,6 +9,12 @@ const {
   createArticleFromUpload,
   deleteArticleById
 } = require('../services/articleStore');
+const {
+  listActiveCategories,
+  listAllCategories,
+  createCategory,
+  softDeleteCategory
+} = require('../services/categoryStore');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -59,8 +65,33 @@ async function renderMarkdownToSafeHtml(markdownContent) {
 }
 
 async function renderArticlesPage(req, res, options = {}) {
-  const allArticles = await listArticles();
-  const selectedId = options.selectedId || req.query.article || (allArticles[0] ? allArticles[0].id : null);
+  const isAdmin = isAdminUser(req.session.user);
+  const selectedCategoryId = options.selectedCategoryId !== undefined
+    ? options.selectedCategoryId
+    : (req.query.category || null);
+
+  const [allArticlesRaw, activeCategories, allCategories] = await Promise.all([
+    listArticles(),
+    listActiveCategories(),
+    isAdmin ? listAllCategories() : Promise.resolve([]),
+  ]);
+
+  const categoryMap = {};
+  (allCategories.length ? allCategories : activeCategories).forEach((cat) => {
+    categoryMap[cat.id] = cat.name;
+  });
+
+  const enrichedArticles = allArticlesRaw.map((a) => ({
+    ...a,
+    categoryName: a.categoryId ? (categoryMap[a.categoryId] || null) : null,
+  }));
+
+  const filteredArticles = selectedCategoryId
+    ? enrichedArticles.filter((a) => a.categoryId === selectedCategoryId)
+    : enrichedArticles;
+
+  const selectedId = options.selectedId || req.query.article
+    || (filteredArticles[0] ? filteredArticles[0].id : null);
   const selectedArticle = selectedId ? await getArticleById(selectedId) : null;
   const selectedArticleHtml = selectedArticle
     ? await renderMarkdownToSafeHtml(selectedArticle.markdown)
@@ -71,12 +102,15 @@ async function renderArticlesPage(req, res, options = {}) {
     user: req.session.user,
     showMenu: true,
     pageStyles: ['/articles.css'],
-    isAdmin: isAdminUser(req.session.user),
-    articles: allArticles,
+    isAdmin,
+    articles: filteredArticles,
+    categories: activeCategories,
+    allCategories,
     selectedArticle,
     selectedArticleHtml,
+    selectedCategoryId,
     error: options.error || null,
-    success: options.success || null
+    success: options.success || null,
   });
 }
 
@@ -101,9 +135,11 @@ router.get('/tests', authenticateStub, (req, res) => {
 // Artikler
 router.get('/articles', authenticateStub, async (req, res, next) => {
   try {
-    const success = req.query.uploaded
-      ? 'Artikel er uploadet'
-      : (req.query.deleted ? 'Artikel er slettet' : null);
+    let success = null;
+    if (req.query.uploaded) success = 'Artikel er uploadet';
+    else if (req.query.deleted) success = 'Artikel er slettet';
+    else if (req.query.categoryCreated) success = 'Kategori oprettet';
+    else if (req.query.categoryDeleted) success = 'Kategori arkiveret';
     await renderArticlesPage(req, res, { success });
   } catch (error) {
     next(error);
@@ -130,7 +166,8 @@ router.post('/articles/upload', authenticateStub, (req, res, next) => {
       await createArticleFromUpload({
         originalName: uploadedFile.originalname,
         markdownContent: uploadedFile.buffer.toString('utf-8'),
-        title: req.body.title
+        title: req.body.title,
+        categoryId: req.body.categoryId || null,
       });
 
       return res.redirect('/articles?uploaded=1');
@@ -158,6 +195,41 @@ router.post('/articles/delete', authenticateStub, async (req, res, next) => {
     }
 
     return res.redirect('/articles?deleted=1');
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/categories/create', authenticateStub, async (req, res, next) => {
+  if (!isAdminUser(req.session.user)) {
+    return res.status(403).send('Kun administratorer kan oprette kategorier');
+  }
+  try {
+    const { name } = req.body || {};
+    await createCategory(name);
+    return res.redirect('/articles?categoryCreated=1');
+  } catch (error) {
+    if (error.message) {
+      return renderArticlesPage(req, res, { error: error.message });
+    }
+    return next(error);
+  }
+});
+
+router.post('/categories/delete', authenticateStub, async (req, res, next) => {
+  if (!isAdminUser(req.session.user)) {
+    return res.status(403).send('Kun administratorer kan arkivere kategorier');
+  }
+  try {
+    const { categoryId } = req.body || {};
+    if (!categoryId) {
+      return renderArticlesPage(req, res, { error: 'Mangler kategori-id' });
+    }
+    const deleted = await softDeleteCategory(categoryId);
+    if (!deleted) {
+      return renderArticlesPage(req, res, { error: 'Kategorien blev ikke fundet' });
+    }
+    return res.redirect('/articles?categoryDeleted=1');
   } catch (error) {
     return next(error);
   }

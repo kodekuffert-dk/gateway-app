@@ -83,7 +83,7 @@ button {
   color: white;
   border-radius: 6px;
   padding: 0.75rem;
-  border: none;
+  border: 1px solid var(--primary-color);
   font-weight: bold;
   cursor: pointer;
 }

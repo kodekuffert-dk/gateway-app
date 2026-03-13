@@ -1,20 +1,40 @@
 <div class="row g-4">
+	<!-- Sidebar -->
 	<div class="col-lg-4 col-xl-3">
+
+		<!-- Kategori-filter -->
+		<div class="card shadow-sm mb-3">
+			<div class="card-body pb-2">
+				<h2 class="h6 text-muted text-uppercase mb-2">Emner</h2>
+				<div class="d-flex flex-wrap gap-1 category-filter">
+					<a href="/articles" class="category-btn <%= !selectedCategoryId ? 'category-btn--active' : '' %>">Alle</a>
+					<% categories.forEach((cat) => { %>
+						<a
+							href="/articles?category=<%= encodeURIComponent(cat.id) %>"
+							class="category-btn <%= selectedCategoryId === cat.id ? 'category-btn--active' : '' %>"
+						><%= cat.name %></a>
+					<% }) %>
+				</div>
+			</div>
+		</div>
+
+		<!-- Artiklelliste -->
 		<div class="card shadow-sm">
 			<div class="card-body">
 				<h2 class="h5 mb-3">Artikler</h2>
-
 				<% if (!articles || articles.length === 0) { %>
-					<p class="text-muted mb-0">Ingen artikler endnu.</p>
+					<p class="text-muted mb-0">Ingen artikler i dette emne.</p>
 				<% } else { %>
-					<div class="list-group">
+					<div class="list-group list-group-flush">
 						<% articles.forEach((article) => { %>
 							<a
-								href="/articles?article=<%= encodeURIComponent(article.id) %>"
-								class="list-group-item list-group-item-action <%= selectedArticle && selectedArticle.id === article.id ? 'active' : '' %>"
+								href="/articles?article=<%= encodeURIComponent(article.id) %><%= selectedCategoryId ? '&category=' + encodeURIComponent(selectedCategoryId) : '' %>"
+								class="list-group-item list-group-item-action px-0 <%= selectedArticle && selectedArticle.id === article.id ? 'active' : '' %>"
 							>
 								<div class="fw-semibold"><%= article.title %></div>
-								<small class="opacity-75">Opdateret <%= new Date(article.updatedAt).toLocaleString('da-DK') %></small>
+								<% if (article.categoryName) { %>
+									<small class="opacity-75"><%= article.categoryName %></small>
+								<% } %>
 							</a>
 						<% }) %>
 					</div>
@@ -23,30 +43,72 @@
 		</div>
 
 		<% if (isAdmin) { %>
-			<div class="card shadow-sm mt-4">
+			<!-- Upload -->
+			<div class="card shadow-sm mt-3">
 				<div class="card-body">
 					<h3 class="h6 mb-3">Upload artikel</h3>
 					<form method="post" action="/articles/upload" enctype="multipart/form-data">
-						<div class="mb-3">
-							<label for="title" class="form-label">Titel (valgfri)</label>
-							<input id="title" name="title" type="text" class="form-control" />
+						<div class="mb-2">
+							<label for="title" class="form-label form-label-sm">Titel (valgfri)</label>
+							<input id="title" name="title" type="text" class="form-control form-control-sm" />
+						</div>
+						<div class="mb-2">
+							<label for="categoryId" class="form-label form-label-sm">Emne</label>
+							<select id="categoryId" name="categoryId" class="form-select form-select-sm">
+								<option value="">— intet emne —</option>
+								<% categories.forEach((cat) => { %>
+									<option value="<%= cat.id %>" <%= selectedCategoryId === cat.id ? 'selected' : '' %>><%= cat.name %></option>
+								<% }) %>
+							</select>
 						</div>
 						<div class="mb-3">
-							<label for="articleFile" class="form-label">Markdown-fil (.md)</label>
-							<input id="articleFile" name="articleFile" type="file" accept=".md,text/markdown" class="form-control" required />
+							<label for="articleFile" class="form-label form-label-sm">Markdown-fil (.md)</label>
+							<input id="articleFile" name="articleFile" type="file" accept=".md,text/markdown" class="form-control form-control-sm" required />
 						</div>
-						<button type="submit" class="btn kuffert-btn-primary w-100">Upload</button>
+						<button type="submit" class="btn btn-sm kuffert-btn-primary w-100">Upload</button>
 					</form>
+				</div>
+			</div>
+
+			<!-- Administrer emner -->
+			<div class="card shadow-sm mt-3">
+				<div class="card-body">
+					<h3 class="h6 mb-3">Administrer emner</h3>
+					<form method="post" action="/categories/create" class="mb-3">
+						<div class="input-group input-group-sm">
+							<input name="name" type="text" class="form-control" placeholder="Nyt emne..." required />
+							<button type="submit" class="btn kuffert-btn-primary">Opret</button>
+						</div>
+					</form>
+					<% if (allCategories && allCategories.length > 0) { %>
+						<ul class="list-group list-group-flush">
+							<% allCategories.forEach((cat) => { %>
+								<li class="list-group-item px-0 d-flex align-items-center justify-content-between py-2">
+									<span class="small <%= cat.deletedAt ? 'text-muted text-decoration-line-through' : '' %>"><%= cat.name %></span>
+									<% if (!cat.deletedAt) { %>
+										<form method="post" action="/categories/delete" class="ms-2" onsubmit="return confirm('Arkiver emnet?');">
+											<input type="hidden" name="categoryId" value="<%= cat.id %>" />
+											<button type="submit" class="btn btn-outline-secondary btn-sm py-0">Arkiver</button>
+										</form>
+									<% } else { %>
+										<span class="badge bg-secondary ms-2">Arkiveret</span>
+									<% } %>
+								</li>
+							<% }) %>
+						</ul>
+					<% } else { %>
+						<p class="text-muted small mb-0">Ingen emner endnu.</p>
+					<% } %>
 				</div>
 			</div>
 		<% } %>
 	</div>
 
+	<!-- Artikelindhold -->
 	<div class="col-lg-8 col-xl-9">
 		<% if (error) { %>
 			<div class="alert alert-danger"><%= error %></div>
 		<% } %>
-
 		<% if (success) { %>
 			<div class="alert alert-success"><%= success %></div>
 		<% } %>

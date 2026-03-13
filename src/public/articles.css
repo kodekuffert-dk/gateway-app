@@ -1,3 +1,28 @@
+.category-btn {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  font-weight: bold;
+  border: 1px solid #adb5bd;
+  border-radius: 0.2rem;
+  background-color: transparent;
+  color: #6c757d;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.category-btn.category-btn--active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
+.category-btn:hover:not(.category-btn--active) {
+  border-color: #6c757d;
+  color: #343a40;
+}
+
 .article-content {
   line-height: 1.7;
   font-size: 1rem;
