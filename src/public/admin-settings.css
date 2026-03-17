@@ -1,0 +1,250 @@
+.admin-settings-page {
+  max-width: 1320px;
+  margin: 0 auto;
+  color: #1f2328;
+}
+
+.admin-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.admin-settings-eyebrow {
+  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #57606a;
+}
+
+.admin-settings-title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.admin-settings-description {
+  max-width: 780px;
+  margin-top: 0.75rem;
+  color: #57606a;
+  font-size: 1rem;
+}
+
+.admin-settings-badge {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #d0d7de;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #57606a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-settings-alert {
+  margin-bottom: 1.5rem;
+}
+
+.admin-settings-shell {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+
+.admin-settings-sidebar {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.admin-settings-sidebar-card {
+  padding: 1.25rem;
+  border: 1px solid #d8dee4;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f8fa 100%);
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.04);
+}
+
+.admin-settings-sidebar-label {
+  margin-bottom: 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #57606a;
+}
+
+.admin-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-settings-nav a {
+  display: block;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  color: #24292f;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-settings-nav a:hover,
+.admin-settings-nav a:focus-visible {
+  background: #eaeef2;
+  outline: none;
+}
+
+.admin-settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.admin-settings-section {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #d8dee4;
+}
+
+.admin-settings-section:last-child {
+  border-bottom: none;
+}
+
+.admin-settings-section-header {
+  margin-bottom: 1rem;
+}
+
+.admin-settings-section-header h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.admin-settings-section-header p {
+  margin: 0;
+  color: #57606a;
+}
+
+.admin-settings-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-settings-panel {
+  padding: 1.5rem;
+  border: 1px solid #d8dee4;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(31, 35, 40, 0.04);
+}
+
+.admin-settings-panel-accent {
+  margin-bottom: 1rem;
+  background:
+    radial-gradient(circle at top right, rgba(75, 63, 114, 0.08), transparent 28%),
+    #ffffff;
+}
+
+.admin-settings-panel-header {
+  margin-bottom: 1.25rem;
+}
+
+.admin-settings-panel-header h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.admin-settings-panel-header p,
+.admin-settings-fieldset p,
+.admin-settings-checkbox-item small {
+  margin: 0;
+  color: #57606a;
+}
+
+.admin-settings-panel-header-split {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.admin-settings-form {
+  display: block;
+}
+
+.admin-settings-fieldset {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+  gap: 1rem 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #d8dee4;
+}
+
+.admin-settings-fieldset h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.admin-settings-checkbox-list {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-settings-checkbox-item {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border: 1px solid #d8dee4;
+  border-radius: 14px;
+  background: #f6f8fa;
+  cursor: pointer;
+}
+
+.admin-settings-checkbox-item span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.admin-settings-empty {
+  color: #57606a;
+}
+
+@media (max-width: 991.98px) {
+  .admin-settings-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-settings-sidebar {
+    position: static;
+  }
+
+  .admin-settings-fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-settings-panel-header-split {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .admin-settings-header {
+    flex-direction: column;
+  }
+
+  .admin-settings-panel,
+  .admin-settings-sidebar-card {
+    padding: 1.1rem;
+  }
+}

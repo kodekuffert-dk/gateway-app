@@ -12,7 +12,8 @@ const {
 } = require('../services/catalogStore');
 const { isAdminUser } = require('../utils/admin');
 
-const CATALOG_PAGE_PATH = '/admin/catalog';
+const ADMIN_PAGE_PATH = '/admin';
+const LEGACY_CATALOG_PAGE_PATH = '/admin/catalog';
 
 function ensureAdmin(req, res) {
   if (!isAdminUser(req.session.user)) {
@@ -30,14 +31,15 @@ async function loadAdminData() {
   return { teams, courses };
 }
 
-function renderCatalogPage(req, res, options = {}) {
+function renderAdminPage(req, res, options = {}) {
   return async (data = null) => {
     const payload = data || await loadAdminData();
-    return res.renderWithLayout('admin-catalog', {
-      title: 'Hold og Kurser',
+    return res.renderWithLayout('admin-settings', {
+      title: 'Administration',
       user: req.session.user,
       isAdmin: true,
       showMenu: true,
+      pageStyles: ['/admin-settings.css'],
       teams: payload.teams,
       courses: payload.courses,
       success: options.success || null,
@@ -47,24 +49,33 @@ function renderCatalogPage(req, res, options = {}) {
 }
 
 function resolveRedirectPath(redirectTo, fallbackPath) {
-  if (redirectTo === CATALOG_PAGE_PATH) {
-    return redirectTo;
+  if (redirectTo === ADMIN_PAGE_PATH || redirectTo === LEGACY_CATALOG_PAGE_PATH) {
+    return ADMIN_PAGE_PATH;
   }
   return fallbackPath;
 }
 
-router.get('/admin/catalog', authenticateStub, async (req, res, next) => {
+router.get('/admin', authenticateStub, async (req, res, next) => {
   if (!ensureAdmin(req, res)) {
     return;
   }
 
   try {
     const success = req.query.saved ? 'Data gemt' : null;
-    const render = renderCatalogPage(req, res, { success });
+    const render = renderAdminPage(req, res, { success });
     return render();
   } catch (error) {
     return next(error);
   }
+});
+
+router.get('/admin/catalog', authenticateStub, (req, res) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+
+  const query = req.query && req.query.saved ? '?saved=1' : '';
+  return res.redirect(`${ADMIN_PAGE_PATH}${query}`);
 });
 
 router.post('/admin/teams/create', authenticateStub, async (req, res, next) => {
@@ -74,10 +85,10 @@ router.post('/admin/teams/create', authenticateStub, async (req, res, next) => {
 
   const { name, startDate, endDate } = req.body || {};
   const courseIds = normalizeCourseIds(req.body && req.body.courseIds);
-  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, CATALOG_PAGE_PATH);
+  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, ADMIN_PAGE_PATH);
   if (!name || !startDate) {
     try {
-      const render = renderCatalogPage(req, res, { error: 'Holdnavn og startdato skal udfyldes' });
+      const render = renderAdminPage(req, res, { error: 'Holdnavn og startdato skal udfyldes' });
       return render();
     } catch (error) {
       return next(error);
@@ -99,10 +110,10 @@ router.post('/admin/teams/update', authenticateStub, async (req, res, next) => {
 
   const { id, name, startDate, endDate } = req.body || {};
   const courseIds = normalizeCourseIds(req.body && req.body.courseIds);
-  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, CATALOG_PAGE_PATH);
+  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, ADMIN_PAGE_PATH);
   if (!id || !name || !startDate) {
     try {
-      const render = renderCatalogPage(req, res, { error: 'Team-id, navn og startdato skal udfyldes' });
+      const render = renderAdminPage(req, res, { error: 'Team-id, navn og startdato skal udfyldes' });
       return render();
     } catch (error) {
       return next(error);
@@ -123,10 +134,10 @@ router.post('/admin/courses/create', authenticateStub, async (req, res, next) =>
   }
 
   const { title, description } = req.body || {};
-  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, CATALOG_PAGE_PATH);
+  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, ADMIN_PAGE_PATH);
   if (!title) {
     try {
-      const render = renderCatalogPage(req, res, { error: 'Kurstitel skal udfyldes' });
+      const render = renderAdminPage(req, res, { error: 'Kurstitel skal udfyldes' });
       return render();
     } catch (error) {
       return next(error);
@@ -147,10 +158,10 @@ router.post('/admin/courses/update', authenticateStub, async (req, res, next) =>
   }
 
   const { id, title, description } = req.body || {};
-  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, CATALOG_PAGE_PATH);
+  const redirectPath = resolveRedirectPath(req.body && req.body.redirectTo, ADMIN_PAGE_PATH);
   if (!id || !title) {
     try {
-      const render = renderCatalogPage(req, res, { error: 'Kursus-id og titel skal udfyldes' });
+      const render = renderAdminPage(req, res, { error: 'Kursus-id og titel skal udfyldes' });
       return render();
     } catch (error) {
       return next(error);

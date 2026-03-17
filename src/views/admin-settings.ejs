@@ -1,0 +1,231 @@
+<div class="admin-settings-page">
+  <div class="admin-settings-header">
+    <div>
+      <p class="admin-settings-eyebrow">Administration</p>
+      <h1 class="admin-settings-title">Indstillinger for hold og kurser</h1>
+      <p class="admin-settings-description mb-0">
+        Administrer kataloget fra én samlet side med sektioner, der følger samme rytme som en settings-visning.
+      </p>
+    </div>
+    <div class="admin-settings-badge">Kun for administratorer</div>
+  </div>
+
+  <% if (error) { %>
+    <div class="alert alert-danger admin-settings-alert"><%= error %></div>
+  <% } %>
+
+  <% if (success) { %>
+    <div class="alert alert-success admin-settings-alert"><%= success %></div>
+  <% } %>
+
+  <div class="admin-settings-shell">
+    <aside class="admin-settings-sidebar">
+      <div class="admin-settings-sidebar-card">
+        <p class="admin-settings-sidebar-label">På denne side</p>
+        <nav class="admin-settings-nav" aria-label="Administrationssektioner">
+          <a href="#teams">Hold</a>
+          <a href="#courses">Kurser</a>
+        </nav>
+      </div>
+    </aside>
+
+    <div class="admin-settings-content">
+      <section class="admin-settings-section" id="teams">
+        <div class="admin-settings-section-header">
+          <div>
+            <h2>Hold</h2>
+            <p>Opret hold og styr, hvilke kurser der hører til hvert hold.</p>
+          </div>
+        </div>
+
+        <div class="admin-settings-panel admin-settings-panel-accent">
+          <div class="admin-settings-panel-header">
+            <div>
+              <h3>Opret hold</h3>
+              <p>Nye hold får deres kursusadgang sat direkte ved oprettelse.</p>
+            </div>
+          </div>
+          <form method="post" action="/admin/teams/create" class="admin-settings-form">
+            <input type="hidden" name="redirectTo" value="/admin">
+            <div class="row g-3">
+              <div class="col-lg-4">
+                <label class="form-label form-label-sm" for="team-name">Navn</label>
+                <input type="text" id="team-name" name="name" class="form-control" required>
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label form-label-sm" for="team-start-date">Startdato</label>
+                <input type="date" id="team-start-date" name="startDate" class="form-control" required>
+              </div>
+              <div class="col-md-6 col-lg-3">
+                <label class="form-label form-label-sm" for="team-end-date">Slutdato</label>
+                <input type="date" id="team-end-date" name="endDate" class="form-control">
+              </div>
+              <div class="col-lg-2 d-flex align-items-end">
+                <button type="submit" class="btn kuffert-btn-primary w-100">Opret hold</button>
+              </div>
+            </div>
+
+            <div class="admin-settings-fieldset mt-4">
+              <div>
+                <h4>Tilknyt kurser</h4>
+                <p>Vælg de kurser, som skal være aktive for holdet fra start.</p>
+              </div>
+              <div class="admin-settings-checkbox-list">
+                <% if (courses.length === 0) { %>
+                  <p class="admin-settings-empty mb-0">Der er ingen kurser at vælge endnu.</p>
+                <% } %>
+                <% courses.forEach((course) => { %>
+                  <label class="admin-settings-checkbox-item" for="new-team-course-<%= course.id %>">
+                    <input class="form-check-input mt-0" type="checkbox" name="courseIds" value="<%= course.id %>" id="new-team-course-<%= course.id %>">
+                    <span>
+                      <strong><%= course.title %></strong>
+                      <% if (course.description) { %>
+                        <small><%= course.description %></small>
+                      <% } %>
+                    </span>
+                  </label>
+                <% }) %>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-settings-stack">
+          <% if (teams.length === 0) { %>
+            <div class="admin-settings-panel">
+              <p class="admin-settings-empty mb-0">Der er endnu ingen hold oprettet.</p>
+            </div>
+          <% } %>
+
+          <% teams.forEach((team) => { %>
+            <form method="post" action="/admin/teams/update" class="admin-settings-panel admin-settings-form">
+              <input type="hidden" name="redirectTo" value="/admin">
+              <input type="hidden" name="id" value="<%= team.id %>">
+
+              <div class="admin-settings-panel-header admin-settings-panel-header-split">
+                <div>
+                  <h3><%= team.name %></h3>
+                  <p>Opdater holdoplysninger og tilknyttede kurser.</p>
+                </div>
+                <button type="submit" class="btn btn-outline-primary">Gem ændringer</button>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-lg-4">
+                  <label class="form-label form-label-sm" for="team-name-<%= team.id %>">Navn</label>
+                  <input type="text" id="team-name-<%= team.id %>" name="name" class="form-control" value="<%= team.name %>" required>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label form-label-sm" for="team-start-date-<%= team.id %>">Startdato</label>
+                  <input type="date" id="team-start-date-<%= team.id %>" name="startDate" class="form-control" value="<%= team.startDate ? String(team.startDate).slice(0, 10) : '' %>" required>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                  <label class="form-label form-label-sm" for="team-end-date-<%= team.id %>">Slutdato</label>
+                  <input type="date" id="team-end-date-<%= team.id %>" name="endDate" class="form-control" value="<%= team.endDate ? String(team.endDate).slice(0, 10) : '' %>">
+                </div>
+              </div>
+
+              <div class="admin-settings-fieldset mt-4">
+                <div>
+                  <h4>Tilknyttede kurser</h4>
+                  <p>Markér de kurser, som dette hold skal have adgang til.</p>
+                </div>
+                <div class="admin-settings-checkbox-list">
+                  <% if (courses.length === 0) { %>
+                    <p class="admin-settings-empty mb-0">Der er ingen kurser at tilknytte endnu.</p>
+                  <% } %>
+                  <% courses.forEach((course) => { %>
+                    <label class="admin-settings-checkbox-item" for="team-course-<%= team.id %>-<%= course.id %>">
+                      <input
+                        class="form-check-input mt-0"
+                        type="checkbox"
+                        name="courseIds"
+                        value="<%= course.id %>"
+                        id="team-course-<%= team.id %>-<%= course.id %>"
+                        <%= (team.courseIds || []).map(Number).includes(Number(course.id)) ? 'checked' : '' %>
+                      >
+                      <span>
+                        <strong><%= course.title %></strong>
+                        <% if (course.description) { %>
+                          <small><%= course.description %></small>
+                        <% } %>
+                      </span>
+                    </label>
+                  <% }) %>
+                </div>
+              </div>
+            </form>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="admin-settings-section" id="courses">
+        <div class="admin-settings-section-header">
+          <div>
+            <h2>Kurser</h2>
+            <p>Vedligehold kursusoversigten, som holdene kan knyttes op imod.</p>
+          </div>
+        </div>
+
+        <div class="admin-settings-panel admin-settings-panel-accent">
+          <div class="admin-settings-panel-header">
+            <div>
+              <h3>Opret kursus</h3>
+              <p>Brug korte og tydelige beskrivelser, så de er lette at genkende i holdoversigten.</p>
+            </div>
+          </div>
+          <form method="post" action="/admin/courses/create" class="admin-settings-form">
+            <input type="hidden" name="redirectTo" value="/admin">
+            <div class="row g-3">
+              <div class="col-lg-4">
+                <label class="form-label form-label-sm" for="course-title">Titel</label>
+                <input type="text" id="course-title" name="title" class="form-control" required>
+              </div>
+              <div class="col-lg-6">
+                <label class="form-label form-label-sm" for="course-description">Beskrivelse</label>
+                <input type="text" id="course-description" name="description" class="form-control">
+              </div>
+              <div class="col-lg-2 d-flex align-items-end">
+                <button type="submit" class="btn kuffert-btn-primary w-100">Opret kursus</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="admin-settings-stack">
+          <% if (courses.length === 0) { %>
+            <div class="admin-settings-panel">
+              <p class="admin-settings-empty mb-0">Der er endnu ingen kurser oprettet.</p>
+            </div>
+          <% } %>
+
+          <% courses.forEach((course) => { %>
+            <form method="post" action="/admin/courses/update" class="admin-settings-panel admin-settings-form">
+              <input type="hidden" name="redirectTo" value="/admin">
+              <input type="hidden" name="id" value="<%= course.id %>">
+
+              <div class="admin-settings-panel-header admin-settings-panel-header-split">
+                <div>
+                  <h3><%= course.title %></h3>
+                  <p>Redigér visningsnavn og den beskrivelse, administratorer ser på siden.</p>
+                </div>
+                <button type="submit" class="btn btn-outline-primary">Gem ændringer</button>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-lg-4">
+                  <label class="form-label form-label-sm" for="course-title-<%= course.id %>">Titel</label>
+                  <input type="text" id="course-title-<%= course.id %>" name="title" class="form-control" value="<%= course.title %>" required>
+                </div>
+                <div class="col-lg-8">
+                  <label class="form-label form-label-sm" for="course-description-<%= course.id %>">Beskrivelse</label>
+                  <input type="text" id="course-description-<%= course.id %>" name="description" class="form-control" value="<%= course.description || '' %>">
+                </div>
+              </div>
+            </form>
+          <% }) %>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
