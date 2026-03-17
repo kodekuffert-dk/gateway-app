@@ -4,8 +4,7 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js",
-    "migrate:users": "node src/scripts/migrateUsersJsonToDb.js"
+    "dev": "nodemon src/app.js"
   },
   "keywords": [],
   "author": "Lars Nysom (lany@ucn.dk)",

@@ -15,16 +15,6 @@ CREATE TABLE IF NOT EXISTS courses (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS users (
-  id BIGSERIAL PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  name TEXT NOT NULL,
-  team_id BIGINT REFERENCES teams(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS team_courses (
   team_id BIGINT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
   course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -32,7 +22,5 @@ CREATE TABLE IF NOT EXISTS team_courses (
   PRIMARY KEY (team_id, course_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_team_id ON users(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_courses_team_id ON team_courses(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_courses_course_id ON team_courses(course_id);

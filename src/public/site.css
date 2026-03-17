@@ -16,7 +16,7 @@ body {
   height: auto;
 }
 
-/* Kun centrer login/verify sider */
+/* Kun centrer login-siden */
 .main-content > .container.d-flex {
   display: flex;
   align-items: center;

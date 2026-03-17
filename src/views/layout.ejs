@@ -31,9 +31,6 @@
             </li>
             <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
               <li class="nav-item">
-                <a class="nav-link" href="/admin/users">Brugeradministration</a>
-              </li>
-              <li class="nav-item">
                 <a class="nav-link" href="/admin/catalog">Hold og kurser</a>
               </li>
             <% } %>
@@ -47,7 +44,7 @@
       </div>
     </nav>
   <% } %>
-  <% /* Login/verify: centreret, dashboard: ikke centreret */ %>
+  <% /* Login: centreret, dashboard: ikke centreret */ %>
   <% if (!showMenu) { %>
     <div class="container d-flex align-items-center justify-content-center min-vh-100">
       <div class="w-100" style="max-width: 420px;">

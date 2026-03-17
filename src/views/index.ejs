@@ -9,7 +9,7 @@
 
     <!-- Introduktion -->
     <p class="text-center text-muted mb-4">
-        <%= mode === 'verify' ? "Opret login med navn, UCN-mail og adgangskode." : "Log ind med din adgangskode." %>
+        Log ind med din adgangskode.
     </p>
 
     <!-- Fejlbesked -->
@@ -18,18 +18,11 @@
     <% } %>
 
     <!-- Form -->
-    <form method="POST" action="<%= mode === 'verify' ? '/verify' : '/login' %>">
+    <form method="POST" action="/login">
         <div class="mb-3">
         <label for="email" class="form-label">Email-adresse</label>
         <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
         </div>
-
-        <% if (mode === 'verify') { %>
-        <div class="mb-3">
-            <label for="name" class="form-label">Navn</label>
-            <input type="text" class="form-control" id="name" name="name" required value="<%= name || '' %>">
-        </div>
-        <% } %>
 
         <div class="mb-3">
             <label for="password" class="form-label">Adgangskode</label>
@@ -38,18 +31,9 @@
 
         <div class="d-grid gap-2">
         <button type="submit" class="kuffert-btn-primary">
-            <%= mode === 'verify' ? "Opret login" : "Log ind" %>
+            Log ind
         </button>
         </div>
     </form>
-
-    <!-- Skift mellem login og verify -->
-    <div class="text-center mt-3">
-        <% if (mode === 'verify') { %>
-        <a href="/" class="text-secondary small">Tilbage til login</a>
-        <% } else { %>
-        <a href="/verify" class="text-secondary small">Første gang? Opret login</a>
-        <% } %>
-    </div>
     </div>
 </div>

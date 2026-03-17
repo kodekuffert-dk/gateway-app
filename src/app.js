@@ -1,7 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const axios = require('axios');
 const path = require('path');
 const ejs = require('ejs');
 const jwtSession = require('./middleware/jwtSession');
