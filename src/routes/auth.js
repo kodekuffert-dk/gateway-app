@@ -1,7 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { loginUser, isValidUcnEmail } = require('../services/authStore');
+const { loginUser, isValidUcnEmail, getProviderName } = require('../services/authStore');
 const { issueSession, clearSession } = require('../middleware/jwtSession');
+
+function buildLoginErrorMessage() {
+  if (process.env.NODE_ENV === 'production') {
+    return 'Ugyldigt login';
+  }
+
+  return `Ugyldigt login (auth provider: ${getProviderName()})`;
+}
 
 // Login GET
 router.get('/login', (req, res) => {
@@ -38,10 +46,11 @@ router.post('/login', async (req, res, next) => {
     issueSession(res, user.email);
     return res.redirect('/dashboard');
   } catch (error) {
+    console.error('Login failed:', error.message);
     return res.renderWithLayout('index', {
       title: 'Login',
       mode: 'login',
-      error: 'Ugyldigt login',
+      error: buildLoginErrorMessage(),
       email,
       showMenu: false
     });
