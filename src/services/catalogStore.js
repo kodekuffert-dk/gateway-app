@@ -96,6 +96,11 @@ async function updateTeam({ id, name, startDate, endDate, courseIds }) {
   });
 }
 
+async function deleteTeam(id) {
+  const result = await query('DELETE FROM teams WHERE id = $1 RETURNING id', [id]);
+  return result.rows[0] || null;
+}
+
 async function listCourses() {
   const result = await query(
     'SELECT id, title, description, created_at AS "createdAt", updated_at AS "updatedAt" FROM courses ORDER BY title ASC'
@@ -130,12 +135,19 @@ async function updateCourse({ id, title, description }) {
   return result.rows[0] || null;
 }
 
+async function deleteCourse(id) {
+  const result = await query('DELETE FROM courses WHERE id = $1 RETURNING id', [id]);
+  return result.rows[0] || null;
+}
+
 module.exports = {
   listTeams,
   createTeam,
   updateTeam,
+  deleteTeam,
   listCourses,
   createCourse,
   updateCourse,
+  deleteCourse,
   normalizeCourseIds,
 };
