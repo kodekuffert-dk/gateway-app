@@ -21,8 +21,8 @@ function getAuthServiceConfig() {
 
   return {
     baseUrl: trimTrailingSlash(baseUrlRaw),
-    loginPath: resolvePath(process.env.AUTH_SERVICE_LOGIN_PATH, '/auth/login'),
-    registerPath: resolvePath(process.env.AUTH_SERVICE_REGISTER_PATH, '/auth/register'),
+    loginPath: resolvePath(process.env.AUTH_SERVICE_LOGIN_PATH, '/login'),
+    registerPath: resolvePath(process.env.AUTH_SERVICE_REGISTER_PATH, '/user'),
   };
 }
 
@@ -59,7 +59,7 @@ function createServiceAuthProvider() {
       };
     },
 
-    async registerUser({ email, password, name }) {
+    async registerUser({ email, password }) {
       const normalizedEmail = normalizeEmail(email);
       const config = getAuthServiceConfig();
       const url = buildAuthServiceUrl(config.baseUrl, config.registerPath);
@@ -67,7 +67,6 @@ function createServiceAuthProvider() {
       const response = await axios.post(url, {
         email: normalizedEmail,
         password: String(password || ''),
-        name: String(name || '').trim(),
       });
 
       return {

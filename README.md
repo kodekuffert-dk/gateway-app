@@ -59,8 +59,8 @@ Vigtige variabler:
 - `SESSION_SECRET` - fallback hvis `JWT_SECRET` ikke er sat.
 - `AUTH_PROVIDER` - vælg auth-provider: `service` eller `dummy` (standard: `dummy`).
 - `AUTH_SERVICE_URL` - base URL til auth-service, f.eks. `http://localhost:8080`.
-- `AUTH_SERVICE_LOGIN_PATH` - endpoint path til login. Standard: `/auth/login`.
-- `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/auth/register`.
+- `AUTH_SERVICE_LOGIN_PATH` - endpoint path til login. Standard: `/login`.
+- `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/user`.
 - `DATABASE_URL` - connection string til PostgreSQL (default i compose peger på `postgres` service).
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - konfiguration for PostgreSQL-containeren.
 - `ADMIN_EMAILS` - kommasepareret liste af admin-mails med adgang til artikel- og katalogadministration.
@@ -74,12 +74,12 @@ Vigtige variabler:
 
 Dummy-brugere:
 
-- `lany@ucn.dk` / `kodekuffert123`
+- `admin@kodekuffert.dk` / `kodekuffert123`
 - `student@ucn.dk` / `kodekuffert123`
 
-Derudover accepterer dummy-provider enhver `@ucn.dk` mail med delt test-adgangskode.
+Derudover accepterer dummy-provider enhver email med delt test-adgangskode.
 
-- `DUMMY_AUTH_PASSWORD` - delt password for vilkårlig `@ucn.dk` test-login (standard: `kodekuffert123`).
+- `DUMMY_AUTH_PASSWORD` - delt password for vilkårligt test-login (standard: `kodekuffert123`).
 
 ## Databasemigrering (eksisterende data)
 Hvis du allerede har en kørende Postgres-volume, kan schema-migreringen køres manuelt:
