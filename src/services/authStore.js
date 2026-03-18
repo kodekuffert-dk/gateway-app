@@ -1,10 +1,6 @@
 const { createServiceAuthProvider } = require('./auth/providers/serviceAuthProvider');
 const { createDummyAuthProvider } = require('./auth/providers/dummyAuthProvider');
 
-function isValidUcnEmail(email) {
-  return /@ucn\.dk$/i.test(email || '');
-}
-
 function getProviderName() {
   return String(process.env.AUTH_PROVIDER || 'dummy').trim().toLowerCase();
 }
@@ -40,6 +36,5 @@ async function registerUser(payload) {
 module.exports = {
   loginUser,
   registerUser,
-  isValidUcnEmail,
   getProviderName,
 };

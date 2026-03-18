@@ -44,6 +44,7 @@ function extractEmail(responseData, fallbackEmail) {
 function createServiceAuthProvider() {
   return {
     async loginUser({ email, password }) {
+
       const normalizedEmail = normalizeEmail(email);
       const config = getAuthServiceConfig();
       const url = buildAuthServiceUrl(config.baseUrl, config.loginPath);

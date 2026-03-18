@@ -2,13 +2,9 @@ function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
 }
 
-function isValidUcnEmail(email) {
-  return /@ucn\.dk$/i.test(email || '');
-}
-
 const DUMMY_USERS = [
   {
-    email: 'lany@ucn.dk',
+    email: 'admin@kodekuffert.dk',
     password: 'kodekuffert123',
     name: 'Lars',
   },
@@ -38,7 +34,7 @@ function createDummyAuthProvider() {
         };
       }
 
-      if (!isValidUcnEmail(normalizedEmail) || String(password || '') !== sharedPassword) {
+      if (!normalizedEmail || String(password || '') !== sharedPassword) {
         throw new Error('Invalid credentials');
       }
 

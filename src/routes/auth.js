@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { loginUser, isValidUcnEmail, getProviderName } = require('../services/authStore');
+const { loginUser, getProviderName } = require('../services/authStore');
 const { issueSession, clearSession } = require('../middleware/jwtSession');
 
 function buildLoginErrorMessage() {
@@ -25,16 +25,6 @@ router.post('/login', async (req, res, next) => {
       title: 'Login',
       mode: 'login',
       error: 'Email og adgangskode skal udfyldes',
-      email,
-      showMenu: false
-    });
-  }
-
-  if (!isValidUcnEmail(email)) {
-    return res.renderWithLayout('index', {
-      title: 'Login',
-      mode: 'login',
-      error: 'Brug en @ucn.dk email',
       email,
       showMenu: false
     });
