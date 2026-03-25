@@ -1,4 +1,5 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const authenticateStub = require('../middleware/authenticateStub');
 const {
@@ -13,6 +14,18 @@ const {
   normalizeCourseIds,
 } = require('../services/catalogStore');
 const { isAdminUser } = require('../utils/admin');
+const { getWhitelist, addWhitelistEntries, deleteWhitelistEntries } = require('../services/whitelistStore');
+
+const csvUploadMiddleware = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1 * 1024 * 1024 },
+}).single('csvFile');
+
+function extractEmailsFromCsv(text) {
+  const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+  const matches = String(text || '').match(emailRegex) || [];
+  return [...new Set(matches.map((e) => e.toLowerCase()))];
+}
 
 const ADMIN_PAGE_PATH = '/admin';
 const LEGACY_CATALOG_PAGE_PATH = '/admin/catalog';
@@ -29,11 +42,14 @@ function ensureAdmin(req, res) {
 }
 
 async function loadAdminData() {
-  const [teams, courses] = await Promise.all([
+  const [teams, courses, whitelistResult] = await Promise.all([
     listTeams(),
     listCourses(),
+    getWhitelist()
+      .then((data) => ({ data, error: null }))
+      .catch((err) => ({ data: [], error: err.message })),
   ]);
-  return { teams, courses };
+  return { teams, courses, whitelist: whitelistResult.data, whitelistError: whitelistResult.error };
 }
 
 function resolvePositiveInteger(value) {
@@ -61,7 +77,7 @@ function isCreateMode(value) {
   return value === CREATE_MODE;
 }
 
-function buildAdminPageUrl({ redirectTo, teamId, courseId, saved = false, hash = '' } = {}) {
+function buildAdminPageUrl({ redirectTo, teamId, courseId, userTeamName, saved = false, hash = '' } = {}) {
   const pathname = redirectTo === LEGACY_CATALOG_PAGE_PATH ? ADMIN_PAGE_PATH : ADMIN_PAGE_PATH;
   const searchParams = new URLSearchParams();
 
@@ -75,6 +91,10 @@ function buildAdminPageUrl({ redirectTo, teamId, courseId, saved = false, hash =
     searchParams.set('course', CREATE_MODE);
   } else if (resolvePositiveInteger(courseId) !== null) {
     searchParams.set('course', String(courseId));
+  }
+
+  if (userTeamName) {
+    searchParams.set('userTeam', String(userTeamName));
   }
 
   if (saved) {
@@ -103,8 +123,11 @@ function renderAdminPage(req, res, options = {}) {
       pageScripts: ['/admin-settings.js'],
       teams: payload.teams,
       courses: payload.courses,
+      whitelist: payload.whitelist || [],
+      whitelistError: payload.whitelistError || null,
       selectedTeam,
       selectedCourse,
+      selectedUserTeamName: options.selectedUserTeamName || null,
       isCreatingTeam,
       isCreatingCourse,
       success: options.success || null,
@@ -124,6 +147,7 @@ router.get('/admin', authenticateStub, async (req, res, next) => {
       success,
       selectedTeamId: req.query.team,
       selectedCourseId: req.query.course,
+      selectedUserTeamName: req.query.userTeam || null,
     });
     return render();
   } catch (error) {
@@ -336,6 +360,100 @@ router.post('/admin/courses/delete', authenticateStub, async (req, res, next) =>
       teamId: selectedTeamId,
       saved: true,
       hash: 'courses',
+    }));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/admin/users/import', authenticateStub, (req, res, next) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+
+  return csvUploadMiddleware(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      return next(new Error(`Upload fejl: ${uploadErr.message}`));
+    }
+
+    const teamName = String((req.body && req.body.teamName) || '').trim();
+
+    if (!teamName) {
+      try {
+        const render = renderAdminPage(req, res, { error: 'Holdnavn mangler', selectedUserTeamName: null });
+        return render();
+      } catch (error) {
+        return next(error);
+      }
+    }
+
+    if (!req.file || !req.file.buffer) {
+      try {
+        const render = renderAdminPage(req, res, { error: 'Ingen fil valgt', selectedUserTeamName: teamName });
+        return render();
+      } catch (error) {
+        return next(error);
+      }
+    }
+
+    let csvText = req.file.buffer.toString('utf-8');
+    if (csvText.charCodeAt(0) === 0xFEFF) {
+      csvText = csvText.slice(1);
+    }
+
+    const emails = extractEmailsFromCsv(csvText);
+
+    if (emails.length === 0) {
+      try {
+        const render = renderAdminPage(req, res, {
+          error: 'Ingen gyldige emailadresser fundet i CSV-filen',
+          selectedUserTeamName: teamName,
+        });
+        return render();
+      } catch (error) {
+        return next(error);
+      }
+    }
+
+    try {
+      await addWhitelistEntries({ teamName, emails });
+      return res.redirect(buildAdminPageUrl({
+        userTeamName: teamName,
+        saved: true,
+        hash: 'users',
+      }));
+    } catch (error) {
+      return next(error);
+    }
+  });
+});
+
+router.post('/admin/users/delete', authenticateStub, async (req, res, next) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  const teamName = String((req.body && req.body.teamName) || '').trim();
+
+  if (!email) {
+    try {
+      const render = renderAdminPage(req, res, {
+        error: 'Email mangler for sletning',
+        selectedUserTeamName: teamName || null,
+      });
+      return render();
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  try {
+    await deleteWhitelistEntries({ emails: [email] });
+    return res.redirect(buildAdminPageUrl({
+      userTeamName: teamName || null,
+      saved: true,
+      hash: 'users',
     }));
   } catch (error) {
     return next(error);

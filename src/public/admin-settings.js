@@ -35,6 +35,7 @@
       searchParams.delete('course');
     }
 
+    // preserve userTeam param untouched
     const query = searchParams.toString();
     return `${window.location.pathname}${query ? `?${query}` : ''}${hash ? `#${hash}` : ''}`;
   }
@@ -42,6 +43,8 @@
   function createAdminController(root) {
     const teamButtons = Array.from(root.querySelectorAll('[data-admin-action="select-team"]'));
     const courseButtons = Array.from(root.querySelectorAll('[data-admin-action="select-course"]'));
+    const userTeamButtons = Array.from(root.querySelectorAll('[data-admin-action="select-user-team"]'));
+    const userTeamPanels = Array.from(root.querySelectorAll('[data-user-team-panel]'));
     const teamForm = root.querySelector('[data-team-form]');
     const courseForm = root.querySelector('[data-course-form]');
     const createTeamButton = root.querySelector('[data-admin-action="create-team"]');
@@ -250,6 +253,35 @@
     populateTeamFormFromState();
     populateCourseFormFromState();
     syncHiddenSelectionInputs();
+
+    function selectUserTeam(teamName) {
+      userTeamButtons.forEach(function (btn) {
+        const isActive = teamName && btn.dataset.userTeamName === teamName;
+        btn.classList.toggle('is-active', !!isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+
+      userTeamPanels.forEach(function (panel) {
+        const panelName = panel.dataset.userTeamPanel;
+        const shouldShow = teamName ? panelName === teamName : panelName === '__empty__';
+        panel.style.display = shouldShow ? '' : 'none';
+      });
+
+      const searchParams = new URLSearchParams(window.location.search);
+      if (teamName) {
+        searchParams.set('userTeam', teamName);
+      } else {
+        searchParams.delete('userTeam');
+      }
+      const query = searchParams.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${query ? '?' + query : ''}#users`);
+    }
+
+    userTeamButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        selectUserTeam(button.dataset.userTeamName);
+      });
+    });
   }
 
   document.addEventListener('DOMContentLoaded', function () {

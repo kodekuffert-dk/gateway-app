@@ -380,3 +380,74 @@
     padding: 1.1rem;
   }
 }
+
+/* ── User list ── */
+
+.admin-settings-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-settings-user-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border: 1px solid #d8dee4;
+  border-radius: 12px;
+  background: #f6f8fa;
+}
+
+.admin-settings-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin-settings-user-email {
+  font-size: 0.92rem;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-settings-user-status {
+  flex-shrink: 0;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-settings-user-status--pending {
+  background: #fff8c5;
+  border: 1px solid #d4a72c;
+  color: #7d4e00;
+}
+
+.admin-settings-user-status--approved {
+  background: #dafbe1;
+  border: 1px solid #2da44e;
+  color: #116329;
+}
+
+.admin-settings-user-status--rejected {
+  background: #ffebe9;
+  border: 1px solid #cf222e;
+  color: #82071e;
+}
+
+@media (max-width: 575.98px) {
+  .admin-settings-user-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-settings-user-info {
+    flex-wrap: wrap;
+  }
+}
