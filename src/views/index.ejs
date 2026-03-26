@@ -1,6 +1,17 @@
 <!-- Branding og formular mv. uden container -->
 <div class="login-container">
     <div class="card-body">
+        <%
+            const isRegisterMode = mode === 'register';
+            const pageIntro = isRegisterMode
+                ? 'Opret login med din whitelistede email-adresse.'
+                : 'Log ind med din adgangskode.';
+            const formAction = isRegisterMode ? '/register' : '/login';
+            const submitLabel = isRegisterMode ? 'Opret login' : 'Log ind';
+            const switchHref = isRegisterMode ? '/login' : '/register';
+            const switchLabel = isRegisterMode ? 'Har du allerede en konto? Log ind' : 'Har du ingen konto? Opret login';
+        %>
+
     <!-- Branding -->
     <div class="text-center mb-4">
         <img src="/logo.jpg" alt="Kodekuffert logo" style="height: 150px; margin-bottom: 1rem;">
@@ -9,16 +20,27 @@
 
     <!-- Introduktion -->
     <p class="text-center text-muted mb-4">
-        Log ind med din adgangskode.
+                <%= pageIntro %>
     </p>
 
+        <% if (isRegisterMode) { %>
+            <p class="text-center text-muted small mb-3">
+                Kun whitelistede emails kan oprette login. Hvis du afvises, kontakt din kursusinstruktoer.
+            </p>
+        <% } %>
+
     <!-- Fejlbesked -->
-    <% if (error) { %>
+    <% if (typeof error !== 'undefined' && error) { %>
         <div class="alert alert-danger text-center mb-3"><%= error %></div>
     <% } %>
 
+        <!-- Succesbesked -->
+        <% if (typeof success !== 'undefined' && success) { %>
+                <div class="alert alert-success text-center mb-3"><%= success %></div>
+        <% } %>
+
     <!-- Form -->
-    <form method="POST" action="/login">
+        <form method="POST" action="<%= formAction %>">
         <div class="mb-3">
         <label for="email" class="form-label">Email-adresse</label>
         <input type="email" class="form-control" id="email" name="email" required value="<%= email || '' %>">
@@ -30,10 +52,12 @@
         </div>
 
         <div class="d-grid gap-2">
-        <button type="submit" class="kuffert-btn-primary">
-            Log ind
-        </button>
+          <button type="submit" class="kuffert-btn-primary"><%= submitLabel %></button>
         </div>
     </form>
+
+    <div class="text-center mt-3">
+      <a href="<%= switchHref %>" class="text-decoration-none"><%= switchLabel %></a>
+    </div>
     </div>
 </div>

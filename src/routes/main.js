@@ -11,6 +11,7 @@ router.get('/', (req, res) => {
     isAdmin: isAdminUser(req.session),
     mode: 'login',
     error: null,
+    success: null,
     email: '',
     showMenu: false
   });
