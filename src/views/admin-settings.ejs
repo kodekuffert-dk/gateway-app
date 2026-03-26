@@ -16,6 +16,25 @@ const adminText = {
   courseSubmitEdit: 'Gem',
 };
 
+function toInputDate(value) {
+  if (!value) {
+    return '';
+  }
+
+  const asString = String(value).trim();
+  const isoPrefixMatch = asString.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoPrefixMatch) {
+    return isoPrefixMatch[1];
+  }
+
+  const parsedDate = new Date(asString);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return parsedDate.toISOString().slice(0, 10);
+}
+
 const initialTeamDetailTitle = isCreatingTeam
   ? adminText.teamCreateTitle
   : (selectedTeam ? selectedTeam.name : adminText.teamDefaultTitle);
@@ -110,8 +129,8 @@ const initialCourseDetailDescription = isCreatingCourse
                       data-admin-action="select-team"
                       data-team-id="<%= team.id %>"
                       data-team-name="<%= team.name %>"
-                      data-team-start-date="<%= team.startDate ? String(team.startDate).slice(0, 10) : '' %>"
-                      data-team-end-date="<%= team.endDate ? String(team.endDate).slice(0, 10) : '' %>"
+                      data-team-start-date="<%= toInputDate(team.startDate) %>"
+                      data-team-end-date="<%= toInputDate(team.endDate) %>"
                       data-team-course-ids="<%= JSON.stringify((team.courseIds || []).map(Number)) %>"
                       aria-pressed="<%= selectedTeam && Number(selectedTeam.id) === Number(team.id) ? 'true' : 'false' %>"
                     >
@@ -121,9 +140,9 @@ const initialCourseDetailDescription = isCreatingCourse
                           <span class="admin-settings-list-meta"><%= (team.courseIds || []).length %> kurser</span>
                         </div>
                         <p>
-                          Start: <%= team.startDate ? String(team.startDate).slice(0, 10) : 'Ikke angivet' %>
+                          Start: <%= toInputDate(team.startDate) || 'Ikke angivet' %>
                           <% if (team.endDate) { %>
-                            · Slut: <%= String(team.endDate).slice(0, 10) %>
+                            · Slut: <%= toInputDate(team.endDate) %>
                           <% } %>
                         </p>
                         <% if (team.courses && team.courses.length > 0) { %>
@@ -174,11 +193,11 @@ const initialCourseDetailDescription = isCreatingCourse
                   </div>
                   <div class="col-md-6 col-lg-3">
                     <label class="form-label form-label-sm" for="team-start-date-detail">Startdato</label>
-                    <input type="date" id="team-start-date-detail" name="startDate" class="form-control" value="<%= selectedTeam && selectedTeam.startDate ? String(selectedTeam.startDate).slice(0, 10) : '' %>" data-team-start-date-input required>
+                    <input type="date" id="team-start-date-detail" name="startDate" class="form-control" value="<%= selectedTeam ? toInputDate(selectedTeam.startDate) : '' %>" data-team-start-date-input required>
                   </div>
                   <div class="col-md-6 col-lg-3">
                     <label class="form-label form-label-sm" for="team-end-date-detail">Slutdato</label>
-                    <input type="date" id="team-end-date-detail" name="endDate" class="form-control" value="<%= selectedTeam && selectedTeam.endDate ? String(selectedTeam.endDate).slice(0, 10) : '' %>" data-team-end-date-input>
+                    <input type="date" id="team-end-date-detail" name="endDate" class="form-control" value="<%= selectedTeam ? toInputDate(selectedTeam.endDate) : '' %>" data-team-end-date-input>
                   </div>
                   <div class="col-lg-2 d-flex align-items-end">
                     <button type="submit" class="btn kuffert-btn-primary w-100" data-team-submit-button><%= isCreatingTeam ? adminText.teamSubmitCreate : adminText.teamSubmitEdit %></button>
@@ -306,9 +325,55 @@ const initialCourseDetailDescription = isCreatingCourse
       </section>
 
       <%
-        function findWhitelistEntry(wl, teamName) {
-          return wl.find(function(w) { return w.teamName === teamName; }) || { teamName: teamName, emails: [] };
+        function teamKey(value) {
+          return String(value || '').trim().toLowerCase();
         }
+
+        function sameTeamName(a, b) {
+          return teamKey(a) === teamKey(b);
+        }
+
+        function buildUserTeamEntries(teamList, whitelistEntries) {
+          const entryMap = new Map();
+
+          teamList.forEach(function(team) {
+            const normalizedName = String(team.name || '').trim();
+            const key = teamKey(normalizedName);
+            if (!key) {
+              return;
+            }
+
+            entryMap.set(key, {
+              teamName: normalizedName,
+              emails: [],
+            });
+          });
+
+          whitelistEntries.forEach(function(entry) {
+            const normalizedName = String(entry && entry.teamName || '').trim();
+            const key = teamKey(normalizedName);
+            if (!key) {
+              return;
+            }
+
+            if (!entryMap.has(key)) {
+              entryMap.set(key, {
+                teamName: normalizedName,
+                emails: [],
+              });
+            }
+
+            const targetEntry = entryMap.get(key);
+            const safeEmails = Array.isArray(entry && entry.emails) ? entry.emails : [];
+            targetEntry.emails = safeEmails;
+          });
+
+          return Array.from(entryMap.values()).sort(function(a, b) {
+            return a.teamName.localeCompare(b.teamName, 'da', { sensitivity: 'base' });
+          });
+        }
+
+        const userTeamEntries = buildUserTeamEntries(teams, whitelist || []);
       %>
 
       <section class="admin-settings-section" id="users">
@@ -366,24 +431,23 @@ const initialCourseDetailDescription = isCreatingCourse
               <p>Vælg et hold for at administrere tilknyttede brugere.</p>
             </div>
 
-            <% if (teams.length === 0) { %>
-              <p class="admin-settings-empty mb-0">Der er endnu ingen hold oprettet.</p>
+            <% if (userTeamEntries.length === 0) { %>
+              <p class="admin-settings-empty mb-0">Der er endnu ingen hold eller whitelistede brugere.</p>
             <% } else { %>
               <div class="admin-settings-entity-list" aria-label="Holdoversigt for brugeradministration">
-                <% teams.forEach(function(team) {
-                  const wlEntry = findWhitelistEntry(whitelist, team.name);
+                <% userTeamEntries.forEach(function(entry) {
                 %>
                   <button
                     type="button"
-                    class="admin-settings-list-item <%= selectedUserTeamName === team.name ? 'is-active' : '' %>"
+                    class="admin-settings-list-item <%= sameTeamName(selectedUserTeamName, entry.teamName) ? 'is-active' : '' %>"
                     data-admin-action="select-user-team"
-                    data-user-team-name="<%= team.name %>"
-                    aria-pressed="<%= selectedUserTeamName === team.name ? 'true' : 'false' %>"
+                    data-user-team-name="<%= entry.teamName %>"
+                    aria-pressed="<%= sameTeamName(selectedUserTeamName, entry.teamName) ? 'true' : 'false' %>"
                   >
                     <div class="admin-settings-list-item-content">
                       <div class="admin-settings-list-item-header">
-                        <h4><%= team.name %></h4>
-                        <span class="admin-settings-list-meta"><%= wlEntry.emails.length %> bruger<%= wlEntry.emails.length !== 1 ? 'e' : '' %></span>
+                        <h4><%= entry.teamName %></h4>
+                        <span class="admin-settings-list-meta"><%= entry.emails.length %> bruger<%= entry.emails.length !== 1 ? 'e' : '' %></span>
                       </div>
                     </div>
                   </button>
@@ -400,28 +464,27 @@ const initialCourseDetailDescription = isCreatingCourse
               </div>
             </div>
 
-            <% teams.forEach(function(team) {
-              const wlEntry = findWhitelistEntry(whitelist, team.name);
-              const isVisible = selectedUserTeamName === team.name;
+            <% userTeamEntries.forEach(function(entry) {
+              const isVisible = sameTeamName(selectedUserTeamName, entry.teamName);
             %>
-              <div data-user-team-panel="<%= team.name %>" <% if (!isVisible) { %>style="display:none"<% } %>>
+              <div data-user-team-panel="<%= entry.teamName %>" <% if (!isVisible) { %>style="display:none"<% } %>>
                 <div class="admin-settings-panel-header admin-settings-panel-header-split">
                   <div>
-                    <h3><%= team.name %></h3>
-                    <p><%= wlEntry.emails.length %> bruger<%= wlEntry.emails.length !== 1 ? 'e' : '' %> på dette hold.</p>
+                    <h3><%= entry.teamName %></h3>
+                    <p><%= entry.emails.length %> bruger<%= entry.emails.length !== 1 ? 'e' : '' %> på dette hold.</p>
                   </div>
                 </div>
 
-                <% if (wlEntry.emails.length === 0) { %>
-                  <p class="admin-settings-empty mb-0">Der er ingen brugere på dette hold endnu.</p>
+                <% if (entry.emails.length === 0) { %>
+                  <p class="admin-settings-empty mb-0">Der er ingen whitelistede brugere på dette hold endnu.</p>
                 <% } else { %>
                   <div class="admin-settings-user-list">
-                    <% wlEntry.emails.forEach(function(entry) { %>
+                    <% entry.emails.forEach(function(emailEntry) { %>
                       <div class="admin-settings-user-row">
                         <div class="admin-settings-user-info">
-                          <span class="admin-settings-user-email"><%= entry.email %></span>
-                          <span class="admin-settings-user-status admin-settings-user-status--<%= (entry.status || '').toLowerCase() %>">
-                            <%= entry.status %>
+                          <span class="admin-settings-user-email"><%= emailEntry.email %></span>
+                          <span class="admin-settings-user-status admin-settings-user-status--<%= (emailEntry.status || '').toLowerCase() %>">
+                            <%= emailEntry.status %>
                           </span>
                         </div>
                         <form
@@ -430,12 +493,12 @@ const initialCourseDetailDescription = isCreatingCourse
                           class="admin-settings-delete-form"
                           onsubmit="return confirm('Vil du slette denne bruger?');"
                         >
-                          <input type="hidden" name="email" value="<%= entry.email %>">
-                          <input type="hidden" name="teamName" value="<%= team.name %>">
+                          <input type="hidden" name="email" value="<%= emailEntry.email %>">
+                          <input type="hidden" name="teamName" value="<%= entry.teamName %>">
                           <button
                             type="submit"
                             class="btn btn-outline-danger admin-settings-delete-button"
-                            aria-label="Slet bruger <%= entry.email %>"
+                            aria-label="Slet bruger <%= emailEntry.email %>"
                             title="Slet bruger"
                           >
                             <span aria-hidden="true">&#128465;</span>
