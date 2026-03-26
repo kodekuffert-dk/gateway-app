@@ -439,6 +439,18 @@
   color: #7d4e00;
 }
 
+.admin-settings-user-status--active {
+  background: #dafbe1;
+  border: 1px solid #2da44e;
+  color: #116329;
+}
+
+.admin-settings-user-status--disabled {
+  background: #ffebe9;
+  border: 1px solid #cf222e;
+  color: #82071e;
+}
+
 .admin-settings-user-status--approved {
   background: #dafbe1;
   border: 1px solid #2da44e;

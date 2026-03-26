@@ -1,11 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-
-// Normaliserer email til et sammenligneligt format.
-function normalizeEmail(email) {
-  return (email || '').trim().toLowerCase();
-}
+const {
+  normalizeEmail,
+  dummyUsers,
+  findUserByEmail,
+  getWhitelistEntryByEmail,
+  isWhitelisted,
+  setWhitelistStatus,
+  removeWhitelistEntry,
+  upsertPendingRegistration,
+  consumePendingRegistration,
+  addConfirmedUser,
+  listDummyUsers,
+  deactivateDummyUser,
+} = require('./dummyState');
 
 // Mappe til simulerede bekræftelsesemails — ligger uden for src/ så den ikke
 // pakkes med i builds, og er tilføjet til .gitignore.
@@ -60,29 +69,11 @@ function createAuthError(statusCode, message) {
   return error;
 }
 
-// Hardcodede testbrugere til lokal udvikling uden ekstern auth-service.
-const DUMMY_USERS = [
-  {
-    id: 'd36fda89-4c0f-4d8a-92b5-4d359f46b9df',
-    email: 'admin@kodekuffert.dk',
-    password: 'kodekuffert123',
-    role: 'Administrator',
-    isEmailConfirmed: true,
-  },
-  {
-    id: '38dcf97f-d2fa-4b67-af32-25366c83d3cb',
-    email: 'student@ucn.dk',
-    password: 'kodekuffert123',
-    role: 'Student',
-    isEmailConfirmed: true,
-  },
-];
-
 // Returnerer en auth-provider med samme kontrakt som service-provideren
 // (loginUser/registerUser), så authStore kan skifte provider transparent.
 function createDummyAuthProvider() {
   return {
-    // Logger kun brugere ind, der findes i DUMMY_USERS med korrekt password.
+    // Logger kun brugere ind, der findes i den delte dummy-brugerliste med korrekt password.
     async loginUser({ email, password }) {
       const normalizedEmail = normalizeEmail(email);
       const normalizedPassword = String(password || '');
@@ -92,8 +83,7 @@ function createDummyAuthProvider() {
         throw createAuthError(400, 'Email og password skal udfyldes.');
       }
 
-      // Dummy-login matcher kun på normaliseret email i den hardcodede liste.
-      const user = DUMMY_USERS.find((entry) => entry.email === normalizedEmail);
+      const user = dummyUsers.find((entry) => entry.email === normalizedEmail);
 
       if (user) {
         // Samme fejlbesked for ukendt/forkert password for at undgå læk af brugerinfo.
@@ -104,6 +94,10 @@ function createDummyAuthProvider() {
         // Simulerer auth-service-regel om bekræftet email.
         if (!user.isEmailConfirmed) {
           throw createAuthError(401, 'Email er ikke bekraeftet endnu.');
+        }
+
+        if (user.isActive === false) {
+          throw createAuthError(403, 'Brugeren er deaktiveret. Kontakt administrator.');
         }
 
         // Returnerer et dummy-token og brugerens rolle til sessionen.
@@ -120,7 +114,7 @@ function createDummyAuthProvider() {
       throw createAuthError(401, 'Forkert email eller password.');
     },
 
-    // Simulerer oprettelse uden persistence; bruges kun til at teste flow/UI.
+    // Simulerer oprettelse med in-memory persistence i dummy-mode.
     // Skriver en bekræftelsesmail til dummy-mail/ for at simulere det link
     // auth-servicen ville sende brugeren via email.
     async registerUser({ email, password }) {
@@ -129,7 +123,26 @@ function createDummyAuthProvider() {
       }
 
       const normalizedEmail = normalizeEmail(email);
+
+      if (!isWhitelisted(normalizedEmail)) {
+        throw createAuthError(400, `Email (${normalizedEmail}) is not whitelisted`);
+      }
+
+      const whitelistEntry = getWhitelistEntryByEmail(normalizedEmail);
+      const teamName = whitelistEntry ? whitelistEntry.teamName : null;
+
+      if (findUserByEmail(normalizedEmail)) {
+        throw createAuthError(400, 'Bruger med denne email findes allerede.');
+      }
+
       const token = generateDummyToken();
+      upsertPendingRegistration({
+        email: normalizedEmail,
+        password: String(password || ''),
+        token,
+        teamName,
+      });
+      setWhitelistStatus(normalizedEmail, 'Pending');
       writeDummyConfirmationEmail(normalizedEmail, token);
 
       // Returnerer normaliseret email for konsistens med øvrige flows.
@@ -139,13 +152,54 @@ function createDummyAuthProvider() {
       };
     },
 
-    // Dummy-bekræftelse returnerer altid succes, da DUMMY_USERS allerede
-    // har isEmailConfirmed sat til true og ingen reel token-validering sker.
+    // Bekræfter email ved at matche token+email, oprette brugeren i memory,
+    // fjerne pending-registrering og markere whitelist-entry som Active.
     async confirmEmail({ token, email }) {
       if (!token || !email) {
         throw createAuthError(400, 'Token og email skal angives.');
       }
+
+      const normalizedEmail = normalizeEmail(email);
+      const pending = consumePendingRegistration({ token: String(token), email: normalizedEmail });
+
+      // Idempotent adfærd: hvis brugeren allerede findes, returneres succes.
+      if (!pending && findUserByEmail(normalizedEmail)) {
+        removeWhitelistEntry(normalizedEmail);
+        return { message: 'Email already confirmed. You can now log in.' };
+      }
+
+      if (!pending) {
+        throw createAuthError(400, 'Invalid or expired confirmation token.');
+      }
+
+      addConfirmedUser({
+        email: normalizedEmail,
+        password: pending.password,
+        teamName: pending.teamName,
+      });
+      removeWhitelistEntry(normalizedEmail);
+
       return { message: 'Email confirmed successfully. You can now log in.' };
+    },
+
+    // Returnerer aktive dummy-brugere til admin-panelet.
+    async listUsers() {
+      return listDummyUsers();
+    },
+
+    // Deaktiverer en oprettet bruger, så login blokeres.
+    async deactivateUser({ email }) {
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) {
+        throw createAuthError(400, 'Email skal angives.');
+      }
+
+      const wasDeactivated = deactivateDummyUser(normalizedEmail);
+      if (!wasDeactivated) {
+        throw createAuthError(404, 'Bruger ikke fundet.');
+      }
+
+      return { message: `Bruger ${normalizedEmail} er deaktiveret.` };
     },
   };
 }

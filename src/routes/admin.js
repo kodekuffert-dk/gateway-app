@@ -16,6 +16,7 @@ const {
 } = require('../services/catalogStore');
 const { isAdminUser } = require('../utils/admin');
 const { getWhitelist, addWhitelistEntries, deleteWhitelistEntries } = require('../services/whitelistStore');
+const { listUsers, deactivateUser } = require('../services/authStore');
 
 const csvUploadMiddleware = multer({
   storage: multer.memoryStorage(),
@@ -97,14 +98,24 @@ function ensureAdmin(req, res) {
 }
 
 async function loadAdminData() {
-  const [teams, courses, whitelistResult] = await Promise.all([
+  const [teams, courses, whitelistResult, usersResult] = await Promise.all([
     listTeams(),
     listCourses(),
     getWhitelist()
       .then((data) => ({ data, error: null }))
       .catch((err) => ({ data: [], error: err.message })),
+    listUsers()
+      .then((data) => ({ data, error: null }))
+      .catch((err) => ({ data: [], error: err.message })),
   ]);
-  return { teams, courses, whitelist: whitelistResult.data, whitelistError: whitelistResult.error };
+  return {
+    teams,
+    courses,
+    whitelist: whitelistResult.data,
+    whitelistError: whitelistResult.error,
+    users: usersResult.data,
+    usersError: usersResult.error,
+  };
 }
 
 function resolvePositiveInteger(value) {
@@ -180,6 +191,8 @@ function renderAdminPage(req, res, options = {}) {
       courses: payload.courses,
       whitelist: payload.whitelist || [],
       whitelistError: payload.whitelistError || null,
+      users: payload.users || [],
+      usersError: payload.usersError || null,
       selectedTeam,
       selectedCourse,
       selectedUserTeamName: options.selectedUserTeamName || null,
@@ -529,6 +542,50 @@ router.post('/admin/users/delete', authenticateStub, async (req, res, next) => {
       hash: 'users',
     }));
   } catch (error) {
+    return next(error);
+  }
+});
+
+router.post('/admin/users/deactivate', authenticateStub, async (req, res, next) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+
+  const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+  const teamName = String((req.body && req.body.teamName) || '').trim();
+
+  if (!email) {
+    try {
+      const render = renderAdminPage(req, res, {
+        error: 'Email mangler for deaktivering',
+        selectedUserTeamName: teamName || null,
+      });
+      return render();
+    } catch (error) {
+      return next(error);
+    }
+  }
+
+  try {
+    await deactivateUser({ email });
+    return res.redirect(buildAdminPageUrl({
+      userTeamName: teamName || null,
+      saved: true,
+      hash: 'users',
+    }));
+  } catch (error) {
+    const statusCode = error.statusCode || (error.response && error.response.status);
+    if (statusCode === 400 || statusCode === 404 || statusCode === 501) {
+      try {
+        const render = renderAdminPage(req, res, {
+          error: error.message || 'Brugeren kunne ikke deaktiveres',
+          selectedUserTeamName: teamName || null,
+        });
+        return render();
+      } catch (renderError) {
+        return next(renderError);
+      }
+    }
     return next(error);
   }
 });

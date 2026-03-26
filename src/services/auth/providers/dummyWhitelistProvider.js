@@ -1,6 +1,4 @@
-// In-memory whitelist til lokal udvikling uden ekstern auth-service.
-// Data lever kun i processen og nulstilles ved genstart.
-const dummyWhitelist = [];
+const { dummyWhitelist, normalizeEmail } = require('./dummyState');
 
 // Finder eller opretter en team-post i den in-memory whitelist.
 function findOrCreateTeam(teamName) {
@@ -30,8 +28,13 @@ function createDummyWhitelistProvider() {
       const team = findOrCreateTeam(teamName);
       let added = 0;
       emails.forEach((email) => {
-        if (!team.emails.find((e) => e.email === email)) {
-          team.emails.push({ email, status: 'Pending' });
+        const normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail) {
+          return;
+        }
+
+        if (!team.emails.find((e) => normalizeEmail(e.email) === normalizedEmail)) {
+          team.emails.push({ email: normalizedEmail, status: 'Pending' });
           added += 1;
         }
       });

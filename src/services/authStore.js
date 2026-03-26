@@ -23,8 +23,10 @@ function assertAuthProviderContract(provider) {
     || typeof provider.loginUser !== 'function'
     || typeof provider.registerUser !== 'function'
     || typeof provider.confirmEmail !== 'function'
+    || typeof provider.listUsers !== 'function'
+    || typeof provider.deactivateUser !== 'function'
   ) {
-    throw new Error('Auth provider mangler loginUser/registerUser/confirmEmail');
+    throw new Error('Auth provider mangler loginUser/registerUser/confirmEmail/listUsers/deactivateUser');
   }
 }
 
@@ -42,9 +44,19 @@ async function confirmEmail(payload) {
   return authProvider.confirmEmail(payload);
 }
 
+async function listUsers() {
+  return authProvider.listUsers();
+}
+
+async function deactivateUser(payload) {
+  return authProvider.deactivateUser(payload);
+}
+
 module.exports = {
   loginUser,
   registerUser,
   confirmEmail,
+  listUsers,
+  deactivateUser,
   getProviderName,
 };

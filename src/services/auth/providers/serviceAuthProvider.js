@@ -126,6 +126,19 @@ function createServiceAuthProvider() {
       });
       return response.data;
     },
+
+    // Auth-service OpenAPI i dette repo definerer ikke et list users-endpoint.
+    // Returnerer derfor en tom liste, så admin-panelet fortsat virker på tværs
+    // af providers uden at fejle.
+    async listUsers() {
+      return [];
+    },
+
+    async deactivateUser() {
+      const error = new Error('Deaktivering af brugere er ikke understottet af nuvaerende auth-service API');
+      error.statusCode = 501;
+      throw error;
+    },
   };
 }
 

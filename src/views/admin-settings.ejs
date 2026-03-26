@@ -333,7 +333,7 @@ const initialCourseDetailDescription = isCreatingCourse
           return teamKey(a) === teamKey(b);
         }
 
-        function buildUserTeamEntries(teamList, whitelistEntries) {
+        function buildUserTeamEntries(teamList, whitelistEntries, userEntries) {
           const entryMap = new Map();
 
           teamList.forEach(function(team) {
@@ -345,7 +345,7 @@ const initialCourseDetailDescription = isCreatingCourse
 
             entryMap.set(key, {
               teamName: normalizedName,
-              emails: [],
+              members: [],
             });
           });
 
@@ -359,13 +359,61 @@ const initialCourseDetailDescription = isCreatingCourse
             if (!entryMap.has(key)) {
               entryMap.set(key, {
                 teamName: normalizedName,
-                emails: [],
+                members: [],
               });
             }
 
             const targetEntry = entryMap.get(key);
             const safeEmails = Array.isArray(entry && entry.emails) ? entry.emails : [];
-            targetEntry.emails = safeEmails;
+            safeEmails.forEach(function(emailEntry) {
+              const normalizedEmail = String(emailEntry && emailEntry.email || '').trim().toLowerCase();
+              if (!normalizedEmail) {
+                return;
+              }
+
+              targetEntry.members.push({
+                email: normalizedEmail,
+                status: String(emailEntry && emailEntry.status || 'Pending'),
+                role: null,
+                source: 'whitelist',
+              });
+            });
+          });
+
+          const fallbackTeamName = 'Uden hold';
+          const safeUsers = Array.isArray(userEntries) ? userEntries : [];
+          safeUsers.forEach(function(user) {
+            const email = String(user && user.email || '').trim().toLowerCase();
+            if (!email) {
+              return;
+            }
+
+            const teamName = String(user && user.teamName || '').trim() || fallbackTeamName;
+            const key = teamKey(teamName);
+            if (!entryMap.has(key)) {
+              entryMap.set(key, {
+                teamName,
+                members: [],
+              });
+            }
+
+            const targetEntry = entryMap.get(key);
+            const existingIndex = targetEntry.members.findIndex(function(member) {
+              return String(member.email || '').trim().toLowerCase() === email;
+            });
+
+            const nextUserMember = {
+              email,
+              status: String(user && user.status || 'Active'),
+              role: String(user && user.role || ''),
+              source: 'user',
+            };
+
+            if (existingIndex >= 0) {
+              targetEntry.members[existingIndex] = nextUserMember;
+            } else {
+              targetEntry.members.push(nextUserMember);
+            }
           });
 
           return Array.from(entryMap.values()).sort(function(a, b) {
@@ -373,7 +421,7 @@ const initialCourseDetailDescription = isCreatingCourse
           });
         }
 
-        const userTeamEntries = buildUserTeamEntries(teams, whitelist || []);
+        const userTeamEntries = buildUserTeamEntries(teams, whitelist || [], users || []);
       %>
 
       <section class="admin-settings-section" id="users">
@@ -387,6 +435,12 @@ const initialCourseDetailDescription = isCreatingCourse
         <% if (whitelistError) { %>
           <div class="alert alert-warning admin-settings-alert">
             Brugerdata kunne ikke hentes: <%= whitelistError %>
+          </div>
+        <% } %>
+
+        <% if (usersError) { %>
+          <div class="alert alert-warning admin-settings-alert">
+            Aktive brugere kunne ikke hentes: <%= usersError %>
           </div>
         <% } %>
 
@@ -447,7 +501,7 @@ const initialCourseDetailDescription = isCreatingCourse
                     <div class="admin-settings-list-item-content">
                       <div class="admin-settings-list-item-header">
                         <h4><%= entry.teamName %></h4>
-                        <span class="admin-settings-list-meta"><%= entry.emails.length %> bruger<%= entry.emails.length !== 1 ? 'e' : '' %></span>
+                        <span class="admin-settings-list-meta"><%= entry.members.length %> bruger<%= entry.members.length !== 1 ? 'e' : '' %></span>
                       </div>
                     </div>
                   </button>
@@ -471,39 +525,62 @@ const initialCourseDetailDescription = isCreatingCourse
                 <div class="admin-settings-panel-header admin-settings-panel-header-split">
                   <div>
                     <h3><%= entry.teamName %></h3>
-                    <p><%= entry.emails.length %> bruger<%= entry.emails.length !== 1 ? 'e' : '' %> på dette hold.</p>
+                    <p><%= entry.members.length %> bruger<%= entry.members.length !== 1 ? 'e' : '' %> på dette hold.</p>
                   </div>
                 </div>
 
-                <% if (entry.emails.length === 0) { %>
-                  <p class="admin-settings-empty mb-0">Der er ingen whitelistede brugere på dette hold endnu.</p>
+                <% if (entry.members.length === 0) { %>
+                  <p class="admin-settings-empty mb-0">Der er ingen brugere på dette hold endnu.</p>
                 <% } else { %>
                   <div class="admin-settings-user-list">
-                    <% entry.emails.forEach(function(emailEntry) { %>
+                    <% entry.members.forEach(function(member) { %>
                       <div class="admin-settings-user-row">
                         <div class="admin-settings-user-info">
-                          <span class="admin-settings-user-email"><%= emailEntry.email %></span>
-                          <span class="admin-settings-user-status admin-settings-user-status--<%= (emailEntry.status || '').toLowerCase() %>">
-                            <%= emailEntry.status %>
+                          <span class="admin-settings-user-email"><%= member.email %></span>
+                          <% if (member.role) { %>
+                            <span class="admin-settings-user-status"><%= member.role %></span>
+                          <% } %>
+                          <span class="admin-settings-user-status admin-settings-user-status--<%= (member.status || '').toLowerCase() %>">
+                            <%= member.status %>
                           </span>
                         </div>
-                        <form
-                          method="post"
-                          action="/admin/users/delete"
-                          class="admin-settings-delete-form"
-                          onsubmit="return confirm('Vil du slette denne bruger?');"
-                        >
-                          <input type="hidden" name="email" value="<%= emailEntry.email %>">
-                          <input type="hidden" name="teamName" value="<%= entry.teamName %>">
-                          <button
-                            type="submit"
-                            class="btn btn-outline-danger admin-settings-delete-button"
-                            aria-label="Slet bruger <%= emailEntry.email %>"
-                            title="Slet bruger"
+                        <% if (member.source === 'whitelist') { %>
+                          <form
+                            method="post"
+                            action="/admin/users/delete"
+                            class="admin-settings-delete-form"
+                            onsubmit="return confirm('Vil du slette denne bruger?');"
                           >
-                            <span aria-hidden="true">&#128465;</span>
-                          </button>
-                        </form>
+                            <input type="hidden" name="email" value="<%= member.email %>">
+                            <input type="hidden" name="teamName" value="<%= entry.teamName %>">
+                            <button
+                              type="submit"
+                              class="btn btn-outline-danger admin-settings-delete-button"
+                              aria-label="Slet bruger <%= member.email %>"
+                              title="Slet bruger"
+                            >
+                              <span aria-hidden="true">&#128465;</span>
+                            </button>
+                          </form>
+                        <% } else if (member.source === 'user' && String(member.status || '').toLowerCase() === 'active') { %>
+                          <form
+                            method="post"
+                            action="/admin/users/deactivate"
+                            class="admin-settings-delete-form"
+                            onsubmit="return confirm('Vil du deaktivere denne bruger?');"
+                          >
+                            <input type="hidden" name="email" value="<%= member.email %>">
+                            <input type="hidden" name="teamName" value="<%= entry.teamName %>">
+                            <button
+                              type="submit"
+                              class="btn btn-outline-warning admin-settings-delete-button"
+                              aria-label="Deaktiver bruger <%= member.email %>"
+                              title="Deaktiver bruger"
+                            >
+                              <span aria-hidden="true">&#9940;</span>
+                            </button>
+                          </form>
+                        <% } %>
                       </div>
                     <% }); %>
                   </div>
