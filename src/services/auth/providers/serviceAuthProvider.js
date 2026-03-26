@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { buildSignatureHeaders } = require('../signatureHeaders');
 
 function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/, '');
@@ -79,10 +80,13 @@ function createServiceAuthProvider() {
       const normalizedEmail = normalizeEmail(email);
       const config = getAuthServiceConfig();
       const url = buildAuthServiceUrl(config.baseUrl, config.loginPath);
-
-      const response = await axios.post(url, {
+      const payload = {
         email: normalizedEmail,
         password: String(password || ''),
+      };
+
+      const response = await axios.post(url, payload, {
+        headers: buildSignatureHeaders(payload),
       });
 
       const role = extractRole(response.data);
@@ -98,10 +102,13 @@ function createServiceAuthProvider() {
       const normalizedEmail = normalizeEmail(email);
       const config = getAuthServiceConfig();
       const url = buildAuthServiceUrl(config.baseUrl, config.registerPath);
-
-      const response = await axios.post(url, {
+      const payload = {
         email: normalizedEmail,
         password: String(password || ''),
+      };
+
+      const response = await axios.post(url, payload, {
+        headers: buildSignatureHeaders(payload),
       });
 
       return {

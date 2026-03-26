@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { buildSignatureHeaders } = require('./auth/signatureHeaders');
 
 function getAuthServiceBaseUrl() {
   const raw = String(process.env.AUTH_SERVICE_URL || '').trim();
@@ -7,7 +8,7 @@ function getAuthServiceBaseUrl() {
 }
 
 function getProviderName() {
-  return String(process.env.AUTH_PROVIDER || 'dummy').trim().toLowerCase();
+  return String(process.env.AUTH_PROVIDER || 'service').trim().toLowerCase();
 }
 
 // In-memory dummy whitelist (for development/testing)
@@ -56,21 +57,30 @@ function createServiceWhitelistProvider() {
     async getWhitelist() {
       const baseUrl = getAuthServiceBaseUrl();
       if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const response = await axios.get(`${baseUrl}/whitelist`);
+      const response = await axios.get(`${baseUrl}/whitelist`, {
+        headers: buildSignatureHeaders(null),
+      });
       return Array.isArray(response.data) ? response.data : [];
     },
 
     async addWhitelistEntries({ teamName, emails }) {
       const baseUrl = getAuthServiceBaseUrl();
       if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const response = await axios.post(`${baseUrl}/whitelist`, { teamName, emails });
+      const payload = { teamName, emails };
+      const response = await axios.post(`${baseUrl}/whitelist`, payload, {
+        headers: buildSignatureHeaders(payload),
+      });
       return response.data;
     },
 
     async deleteWhitelistEntries({ emails }) {
       const baseUrl = getAuthServiceBaseUrl();
       if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const response = await axios.delete(`${baseUrl}/whitelist`, { data: { emails } });
+      const payload = { emails };
+      const response = await axios.delete(`${baseUrl}/whitelist`, {
+        headers: buildSignatureHeaders(payload),
+        data: payload,
+      });
       return response.data;
     },
   };
