@@ -315,7 +315,7 @@ const initialCourseDetailDescription = isCreatingCourse
         <div class="admin-settings-section-header">
           <div>
             <h2>Brugere</h2>
-            <p>Administrér brugere pr. hold. Klik på et hold for at se og tilføje brugere via CSV-upload.</p>
+            <p>Importer whitelist-brugere fra fil og administrér dem pr. hold.</p>
           </div>
         </div>
 
@@ -324,6 +324,40 @@ const initialCourseDetailDescription = isCreatingCourse
             Brugerdata kunne ikke hentes: <%= whitelistError %>
           </div>
         <% } %>
+
+        <div class="admin-settings-panel admin-settings-import-panel">
+          <div class="admin-settings-panel-header admin-settings-panel-header-split">
+            <div>
+              <h3>Importer whitelist-fil</h3>
+              <p>Første linje: Holdnavn;StartDato;SlutDato (datoer er valgfrie, format YYYY-MM-DD). Findes holdet ikke i forvejen, bliver det oprettet automatisk. Resten af linjerne skal være emailadresser.</p>
+            </div>
+          </div>
+
+          <form
+            method="post"
+            action="/admin/users/import"
+            enctype="multipart/form-data"
+            class="admin-settings-form"
+          >
+            <div class="row g-3 align-items-end">
+              <div class="col-lg-8">
+                <label class="form-label form-label-sm" for="whitelist-import-file">Vælg fil</label>
+                <input
+                  type="file"
+                  name="csvFile"
+                  id="whitelist-import-file"
+                  class="form-control"
+                  accept=".csv,.txt"
+                  required
+                >
+              </div>
+              <div class="col-lg-4 d-flex align-items-end">
+                <button type="submit" class="btn kuffert-btn-primary w-100">Importer fil</button>
+              </div>
+            </div>
+            <p class="admin-settings-helper-text mt-3 mb-0">Eksempel linje 1: Hold A;2026-08-15;2026-12-20. Hvis datoer udelades: Hold A;;</p>
+          </form>
+        </div>
 
         <div class="admin-settings-master-detail">
           <div class="admin-settings-panel">
@@ -376,37 +410,6 @@ const initialCourseDetailDescription = isCreatingCourse
                     <h3><%= team.name %></h3>
                     <p><%= wlEntry.emails.length %> bruger<%= wlEntry.emails.length !== 1 ? 'e' : '' %> på dette hold.</p>
                   </div>
-                </div>
-
-                <div class="admin-settings-fieldset" style="grid-template-columns:1fr; border-top:none; padding-top:0; margin-bottom:1rem;">
-                  <form
-                    method="post"
-                    action="/admin/users/import"
-                    enctype="multipart/form-data"
-                    class="admin-settings-form"
-                  >
-                    <input type="hidden" name="teamName" value="<%= team.name %>">
-                    <div>
-                      <h4>Importer brugere</h4>
-                      <p>Upload en CSV-fil med emailadresser (én per linje, evt. kommasepareret).</p>
-                    </div>
-                    <div class="row g-2 align-items-end mt-2">
-                      <div class="col-lg-8">
-                        <label class="form-label form-label-sm visually-hidden" for="csv-file-<%= team.id %>">Vælg CSV-fil</label>
-                        <input
-                          type="file"
-                          name="csvFile"
-                          id="csv-file-<%= team.id %>"
-                          class="form-control"
-                          accept=".csv,.txt"
-                          required
-                        >
-                      </div>
-                      <div class="col-lg-4 d-flex align-items-end">
-                        <button type="submit" class="btn kuffert-btn-primary w-100">Importer</button>
-                      </div>
-                    </div>
-                  </form>
                 </div>
 
                 <% if (wlEntry.emails.length === 0) { %>

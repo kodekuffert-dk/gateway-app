@@ -5,6 +5,7 @@ const authenticateStub = require('../middleware/authenticateStub');
 const {
   listTeams,
   createTeam,
+  ensureTeamByName,
   updateTeam,
   deleteTeam,
   listCourses,
@@ -25,6 +26,60 @@ function extractEmailsFromCsv(text) {
   const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
   const matches = String(text || '').match(emailRegex) || [];
   return [...new Set(matches.map((e) => e.toLowerCase()))];
+}
+
+function removeUtf8Bom(text) {
+  const normalizedText = String(text || '');
+  return normalizedText.charCodeAt(0) === 0xFEFF ? normalizedText.slice(1) : normalizedText;
+}
+
+function parseIsoDateOrNull(value, label) {
+  const normalizedValue = String(value || '').trim();
+  if (!normalizedValue) {
+    return null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    throw new Error(`${label} skal være i formatet YYYY-MM-DD`);
+  }
+
+  const parsedDate = new Date(`${normalizedValue}T00:00:00Z`);
+  if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== normalizedValue) {
+    throw new Error(`${label} er ugyldig`);
+  }
+
+  return normalizedValue;
+}
+
+function parseTeamImportHeader(line) {
+  const headerParts = String(line || '').split(';').map((part) => part.trim());
+  const teamName = headerParts[0] || '';
+  const startDate = parseIsoDateOrNull(headerParts[1], 'Startdato');
+  const endDate = parseIsoDateOrNull(headerParts[2], 'Slutdato');
+
+  return { teamName, startDate, endDate };
+}
+
+function parseWhitelistImportFile(text) {
+  const normalizedText = removeUtf8Bom(text);
+  const lines = normalizedText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    return { teamName: '', startDate: null, endDate: null, emails: [] };
+  }
+
+  const [headerLine, ...emailLines] = lines;
+  const { teamName, startDate, endDate } = parseTeamImportHeader(headerLine);
+
+  return {
+    teamName,
+    startDate,
+    endDate,
+    emails: extractEmailsFromCsv(emailLines.join('\n')),
+  };
 }
 
 const ADMIN_PAGE_PATH = '/admin';
@@ -376,38 +431,55 @@ router.post('/admin/users/import', authenticateStub, (req, res, next) => {
       return next(new Error(`Upload fejl: ${uploadErr.message}`));
     }
 
-    const teamName = String((req.body && req.body.teamName) || '').trim();
+    if (!req.file || !req.file.buffer) {
+      try {
+        const render = renderAdminPage(req, res, { error: 'Ingen fil valgt', selectedUserTeamName: null });
+        return render();
+      } catch (error) {
+        return next(error);
+      }
+    }
+
+    let parsedImport = null;
+    try {
+      const csvText = req.file.buffer.toString('utf-8');
+      parsedImport = parseWhitelistImportFile(csvText);
+    } catch (error) {
+      try {
+        const render = renderAdminPage(req, res, {
+          error: error.message,
+          selectedUserTeamName: null,
+        });
+        return render();
+      } catch (renderError) {
+        return next(renderError);
+      }
+    }
+
+    const {
+      teamName,
+      startDate,
+      endDate,
+      emails,
+    } = parsedImport;
 
     if (!teamName) {
       try {
-        const render = renderAdminPage(req, res, { error: 'Holdnavn mangler', selectedUserTeamName: null });
+        const render = renderAdminPage(req, res, {
+          error: 'Filen skal have et holdnavn på første linje',
+          selectedUserTeamName: null,
+        });
         return render();
       } catch (error) {
         return next(error);
       }
     }
-
-    if (!req.file || !req.file.buffer) {
-      try {
-        const render = renderAdminPage(req, res, { error: 'Ingen fil valgt', selectedUserTeamName: teamName });
-        return render();
-      } catch (error) {
-        return next(error);
-      }
-    }
-
-    let csvText = req.file.buffer.toString('utf-8');
-    if (csvText.charCodeAt(0) === 0xFEFF) {
-      csvText = csvText.slice(1);
-    }
-
-    const emails = extractEmailsFromCsv(csvText);
 
     if (emails.length === 0) {
       try {
         const render = renderAdminPage(req, res, {
-          error: 'Ingen gyldige emailadresser fundet i CSV-filen',
-          selectedUserTeamName: teamName,
+          error: 'Ingen gyldige emailadresser fundet efter første linje i filen',
+          selectedUserTeamName: null,
         });
         return render();
       } catch (error) {
@@ -416,9 +488,10 @@ router.post('/admin/users/import', authenticateStub, (req, res, next) => {
     }
 
     try {
-      await addWhitelistEntries({ teamName, emails });
+      const team = await ensureTeamByName(teamName, { startDate, endDate });
+      await addWhitelistEntries({ teamName: team.name, emails });
       return res.redirect(buildAdminPageUrl({
-        userTeamName: teamName,
+        userTeamName: team.name,
         saved: true,
         hash: 'users',
       }));

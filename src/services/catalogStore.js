@@ -5,6 +5,14 @@ function normalizeNullableDate(value) {
   return trimmed || null;
 }
 
+function normalizeTeamName(value) {
+  return String(value || '').trim();
+}
+
+function getDefaultTeamStartDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 async function listTeams() {
   const result = await query(
     `
@@ -25,6 +33,32 @@ async function listTeams() {
     `
   );
   return result.rows;
+}
+
+async function findTeamByName(name, client = null) {
+  const normalizedName = normalizeTeamName(name);
+  if (!normalizedName) {
+    return null;
+  }
+
+  const executor = client || { query };
+  const result = await executor.query(
+    `
+      SELECT
+        t.id,
+        t.name,
+        t.start_date AS "startDate",
+        t.end_date AS "endDate",
+        t.created_at AS "createdAt",
+        t.updated_at AS "updatedAt"
+      FROM teams t
+      WHERE LOWER(t.name) = LOWER($1)
+      LIMIT 1
+    `,
+    [normalizedName]
+  );
+
+  return result.rows[0] || null;
 }
 
 function normalizeCourseIds(courseIdsInput) {
@@ -61,6 +95,35 @@ async function createTeam({ name, startDate, endDate, courseIds }) {
     }
 
     return team;
+  });
+}
+
+async function ensureTeamByName(name, defaults = {}) {
+  const normalizedName = normalizeTeamName(name);
+  if (!normalizedName) {
+    throw new Error('Holdnavn mangler');
+  }
+
+  return withTransaction(async (client) => {
+    const existingTeam = await findTeamByName(normalizedName, client);
+    if (existingTeam) {
+      return existingTeam;
+    }
+
+    const inserted = await client.query(
+      `
+        INSERT INTO teams (name, start_date, end_date)
+        VALUES ($1, $2, $3)
+        RETURNING id, name, start_date AS "startDate", end_date AS "endDate"
+      `,
+      [
+        normalizedName,
+        normalizeNullableDate(defaults.startDate) || getDefaultTeamStartDate(),
+        normalizeNullableDate(defaults.endDate),
+      ]
+    );
+
+    return inserted.rows[0];
   });
 }
 
@@ -142,7 +205,9 @@ async function deleteCourse(id) {
 
 module.exports = {
   listTeams,
+  findTeamByName,
   createTeam,
+  ensureTeamByName,
   updateTeam,
   deleteTeam,
   listCourses,
