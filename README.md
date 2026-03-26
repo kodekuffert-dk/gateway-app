@@ -79,9 +79,7 @@ Dummy-brugere:
 - `admin@kodekuffert.dk` / `kodekuffert123`
 - `student@ucn.dk` / `kodekuffert123`
 
-Derudover accepterer dummy-provider enhver email med delt test-adgangskode.
-
-- `DUMMY_AUTH_PASSWORD` - delt password for vilkårligt test-login (standard: `kodekuffert123`).
+Dummy-provider accepterer kun brugere, der findes i den hardcodede `DUMMY_USERS`-liste.
 
 ## Databasemigrering (eksisterende data)
 Hvis du allerede har en kørende Postgres-volume, kan schema-migreringen køres manuelt:
