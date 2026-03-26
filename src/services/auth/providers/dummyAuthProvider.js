@@ -1,6 +1,56 @@
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
 // Normaliserer email til et sammenligneligt format.
 function normalizeEmail(email) {
   return (email || '').trim().toLowerCase();
+}
+
+// Mappe til simulerede bekræftelsesemails — ligger uden for src/ så den ikke
+// pakkes med i builds, og er tilføjet til .gitignore.
+const DUMMY_MAIL_DIR = path.join(__dirname, '..', '..', '..', '..', 'dummy-mail');
+
+// Genererer et simpelt token der simulerer det token auth-servicen ville sende.
+function generateDummyToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+// Skriver en fil til DUMMY_MAIL_DIR, der simulerer den bekræftelsesmail
+// auth-servicen sender til brugere ved oprettelse.
+function writeDummyConfirmationEmail(email, token) {
+  try {
+    fs.mkdirSync(DUMMY_MAIL_DIR, { recursive: true });
+    const filename = `confirm-${Date.now()}-${email.replace(/[^a-z0-9]/gi, '_')}.txt`;
+    const gatewayBaseUrl = process.env.GATEWAY_BASE_URL || 'http://localhost:4000';
+    const confirmUrl = `${gatewayBaseUrl}/confirm-email?token=${token}&email=${encodeURIComponent(email)}`;
+    const content = [
+      'From:    noreply@kodekuffert.dk',
+      `To:      ${email}`,
+      'Subject: Bekræft din email – Kodekuffert.dk',
+      '',
+      'Hej,',
+      '',
+      'Tak for din oprettelse på Kodekuffert.dk.',
+      '',
+      'Klik på linket herunder for at bekræfte din email-adresse:',
+      '',
+      `  ${confirmUrl}`,
+      '',
+      'Linket udløber ikke i dummy-tilstand.',
+      '',
+      'Mvh.',
+      'Kodekuffert.dk',
+      '',
+      '---',
+      '(Dette er en simuleret email genereret af dummy auth-provider)',
+    ].join('\n');
+
+    fs.writeFileSync(path.join(DUMMY_MAIL_DIR, filename), content, 'utf-8');
+  } catch (err) {
+    // Fejl i email-simulering må ikke afbryde registreringsflowet
+    console.warn('[dummy-mail] Kunne ikke skrive bekræftelsesmail:', err.message);
+  }
 }
 
 // Opretter en fejl med HTTP-status, så routes kan returnere korrekt responskode.
@@ -71,15 +121,21 @@ function createDummyAuthProvider() {
     },
 
     // Simulerer oprettelse uden persistence; bruges kun til at teste flow/UI.
+    // Skriver en bekræftelsesmail til dummy-mail/ for at simulere det link
+    // auth-servicen ville sende brugeren via email.
     async registerUser({ email, password }) {
       if (!email || !password) {
         throw createAuthError(400, 'Email og password skal udfyldes.');
       }
 
+      const normalizedEmail = normalizeEmail(email);
+      const token = generateDummyToken();
+      writeDummyConfirmationEmail(normalizedEmail, token);
+
       // Returnerer normaliseret email for konsistens med øvrige flows.
       return {
         message: 'User created successfully. Continue by confirming email.',
-        email: normalizeEmail(email),
+        email: normalizedEmail,
       };
     },
 

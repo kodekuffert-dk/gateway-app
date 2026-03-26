@@ -29,6 +29,9 @@ coverage
 # User data (contains password hashes)
 data/users.json
 
+# Simulerede emails fra dummy auth-provider (lokal udvikling)
+dummy-mail/
+
 # Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
 
