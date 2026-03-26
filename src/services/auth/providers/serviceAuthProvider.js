@@ -115,6 +115,17 @@ function createServiceAuthProvider() {
         email: extractEmail(response.data, normalizedEmail),
       };
     },
+
+    // Videresender bekræftelseslinket til auth-servicens /user/confirm-email endpoint.
+    // Kaldet er et simpelt GET uden signatur, da det er en offentlig brugervendt URL.
+    async confirmEmail({ token, email }) {
+      const config = getAuthServiceConfig();
+      const url = buildAuthServiceUrl(config.baseUrl, '/user/confirm-email');
+      const response = await axios.get(url, {
+        params: { token, email },
+      });
+      return response.data;
+    },
   };
 }
 

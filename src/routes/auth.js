@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { loginUser, getProviderName } = require('../services/authStore');
+const { loginUser, confirmEmail, getProviderName } = require('../services/authStore');
 const { issueSession, clearSession } = require('../middleware/jwtSession');
 
 function buildLoginErrorMessage() {
@@ -51,6 +51,44 @@ router.post('/login', async (req, res, next) => {
 router.get('/logout', (req, res) => {
   clearSession(res);
   res.redirect('/');
+});
+
+// Email-bekræftelse — kaldt via link i bekræftelsesmail til brugeren
+router.get('/confirm-email', async (req, res, next) => {
+  const { token, email } = req.query;
+
+  if (!token || !email) {
+    return res.renderWithLayout('confirm-email', {
+      title: 'Bekræft email',
+      success: false,
+      message: 'Ugyldigt bekræftelseslink. Token og email skal angives.',
+      showMenu: false,
+    });
+  }
+
+  try {
+    await confirmEmail({ token, email });
+    return res.renderWithLayout('confirm-email', {
+      title: 'Bekræft email',
+      success: true,
+      message: 'Din email er bekræftet. Du kan nu logge ind.',
+      showMenu: false,
+    });
+  } catch (error) {
+    const statusCode = error.statusCode || (error.response && error.response.status);
+    const serverMessage = error.response && error.response.data && error.response.data.message;
+
+    if (statusCode === 400 || statusCode === 404) {
+      return res.renderWithLayout('confirm-email', {
+        title: 'Bekræft email',
+        success: false,
+        message: serverMessage || 'Ugyldigt eller udløbet bekræftelseslink.',
+        showMenu: false,
+      });
+    }
+
+    return next(error);
+  }
 });
 
 module.exports = router;

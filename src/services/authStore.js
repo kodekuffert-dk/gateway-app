@@ -18,8 +18,13 @@ function createAuthProvider() {
 const authProvider = createAuthProvider();
 
 function assertAuthProviderContract(provider) {
-  if (!provider || typeof provider.loginUser !== 'function' || typeof provider.registerUser !== 'function') {
-    throw new Error('Auth provider mangler loginUser/registerUser');
+  if (
+    !provider
+    || typeof provider.loginUser !== 'function'
+    || typeof provider.registerUser !== 'function'
+    || typeof provider.confirmEmail !== 'function'
+  ) {
+    throw new Error('Auth provider mangler loginUser/registerUser/confirmEmail');
   }
 }
 
@@ -33,8 +38,13 @@ async function registerUser(payload) {
   return authProvider.registerUser(payload);
 }
 
+async function confirmEmail(payload) {
+  return authProvider.confirmEmail(payload);
+}
+
 module.exports = {
   loginUser,
   registerUser,
+  confirmEmail,
   getProviderName,
 };

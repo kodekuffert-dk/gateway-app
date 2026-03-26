@@ -1,0 +1,25 @@
+<div class="login-container">
+  <div class="card-body">
+    <div class="text-center mb-4">
+      <img src="/logo.jpg" alt="Kodekuffert logo" style="height: 150px; margin-bottom: 1rem;">
+    </div>
+
+    <% if (success) { %>
+      <div class="alert alert-success text-center">
+        <strong>Email bekræftet!</strong><br>
+        <%= message %>
+      </div>
+      <div class="d-grid mt-3">
+        <a href="/login" class="kuffert-btn-primary text-center text-decoration-none">Log ind</a>
+      </div>
+    <% } else { %>
+      <div class="alert alert-danger text-center">
+        <strong>Bekræftelse mislykkedes</strong><br>
+        <%= message %>
+      </div>
+      <p class="text-center text-muted small mt-3">
+        Prøv at oprette din bruger igen, eller kontakt support, hvis problemet fortsætter.
+      </p>
+    <% } %>
+  </div>
+</div>

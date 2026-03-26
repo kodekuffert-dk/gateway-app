@@ -1,94 +1,34 @@
-const axios = require('axios');
-const { buildSignatureHeaders } = require('./auth/signatureHeaders');
-
-function getAuthServiceBaseUrl() {
-  const raw = String(process.env.AUTH_SERVICE_URL || '').trim();
-  if (!raw) return null;
-  return raw.replace(/\/+$/, '');
-}
+const { createServiceWhitelistProvider } = require('./auth/providers/serviceWhitelistProvider');
+const { createDummyWhitelistProvider } = require('./auth/providers/dummyWhitelistProvider');
 
 function getProviderName() {
-  return String(process.env.AUTH_PROVIDER || 'service').trim().toLowerCase();
+  return String(process.env.AUTH_PROVIDER || 'dummy').trim().toLowerCase();
 }
 
-// In-memory dummy whitelist (for development/testing)
-const dummyWhitelist = [];
+function createWhitelistProvider() {
+  const providerName = getProviderName();
 
-function createDummyWhitelistProvider() {
-  return {
-    async getWhitelist() {
-      return dummyWhitelist.map((team) => ({
-        teamName: team.teamName,
-        emails: team.emails.map((e) => ({ ...e })),
-      }));
-    },
+  if (providerName === 'dummy') {
+    return createDummyWhitelistProvider();
+  }
 
-    async addWhitelistEntries({ teamName, emails }) {
-      let team = dummyWhitelist.find((t) => t.teamName === teamName);
-      if (!team) {
-        team = { teamName, emails: [] };
-        dummyWhitelist.push(team);
-      }
-      let added = 0;
-      emails.forEach((email) => {
-        if (!team.emails.find((e) => e.email === email)) {
-          team.emails.push({ email, status: 'Pending' });
-          added += 1;
-        }
-      });
-      return { message: `${added} emails added to whitelist for team '${teamName}'` };
-    },
-
-    async deleteWhitelistEntries({ emails }) {
-      const emailSet = new Set(emails.map((e) => e.toLowerCase()));
-      let deleted = 0;
-      dummyWhitelist.forEach((team) => {
-        const before = team.emails.length;
-        team.emails = team.emails.filter((e) => !emailSet.has(e.email.toLowerCase()));
-        deleted += before - team.emails.length;
-      });
-      return { message: `${deleted} emails deleted from whitelist` };
-    },
-  };
+  return createServiceWhitelistProvider();
 }
 
-function createServiceWhitelistProvider() {
-  return {
-    async getWhitelist() {
-      const baseUrl = getAuthServiceBaseUrl();
-      if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const response = await axios.get(`${baseUrl}/whitelist`, {
-        headers: buildSignatureHeaders(null),
-      });
-      return Array.isArray(response.data) ? response.data : [];
-    },
+const whitelistProvider = createWhitelistProvider();
 
-    async addWhitelistEntries({ teamName, emails }) {
-      const baseUrl = getAuthServiceBaseUrl();
-      if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const payload = { teamName, emails };
-      const response = await axios.post(`${baseUrl}/whitelist`, payload, {
-        headers: buildSignatureHeaders(payload),
-      });
-      return response.data;
-    },
-
-    async deleteWhitelistEntries({ emails }) {
-      const baseUrl = getAuthServiceBaseUrl();
-      if (!baseUrl) throw new Error('AUTH_SERVICE_URL er ikke sat');
-      const payload = { emails };
-      const response = await axios.delete(`${baseUrl}/whitelist`, {
-        headers: buildSignatureHeaders(payload),
-        data: payload,
-      });
-      return response.data;
-    },
-  };
+function assertWhitelistProviderContract(provider) {
+  if (
+    !provider
+    || typeof provider.getWhitelist !== 'function'
+    || typeof provider.addWhitelistEntries !== 'function'
+    || typeof provider.deleteWhitelistEntries !== 'function'
+  ) {
+    throw new Error('Whitelist provider mangler getWhitelist/addWhitelistEntries/deleteWhitelistEntries');
+  }
 }
 
-const whitelistProvider = getProviderName() === 'service'
-  ? createServiceWhitelistProvider()
-  : createDummyWhitelistProvider();
+assertWhitelistProviderContract(whitelistProvider);
 
 async function getWhitelist() {
   return whitelistProvider.getWhitelist();
