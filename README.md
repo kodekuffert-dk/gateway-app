@@ -48,7 +48,7 @@ docker run --rm -p 4000:4000 -e SESSION_SECRET=change-me gateway-app
 - Kurser tildeles hold (`team_courses`)
 
 ## Konfiguration
-Miljøvariabler kan defineres i `.env`, via shell-miljøet eller i `compose.yaml`.
+Miljøvariabler kan defineres i `src/.env` (anbefalet), via shell-miljøet eller i `compose.yaml`.
 
 Vigtige variabler:
 
@@ -63,7 +63,7 @@ Vigtige variabler:
 - `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/user`.
 - `DATABASE_URL` - connection string til PostgreSQL (default i compose peger på `postgres` service).
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - konfiguration for PostgreSQL-containeren.
-- `ADMIN_EMAILS` - kommasepareret liste af admin-mails med adgang til artikel- og katalogadministration.
+- Admin-adgang styres via brugerens rolle fra auth-service (f.eks. `Administrator`) og ikke via email-liste i `.env`.
 - `ARTICLES_DIR` - valgfri sti til mappe med Markdown-artikler. Standard er `src/data/articles`.
 
 ## Auth provider (interface-agtig struktur)

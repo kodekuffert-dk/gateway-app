@@ -41,6 +41,37 @@ function extractEmail(responseData, fallbackEmail) {
   );
 }
 
+function extractRole(responseData) {
+  const role = (responseData && responseData.role)
+    || (responseData && responseData.user && responseData.user.role)
+    || null;
+
+  if (!role) {
+    return null;
+  }
+
+  const normalizedRole = String(role).trim();
+  return normalizedRole || null;
+}
+
+function extractRoles(responseData, role) {
+  const sourceRoles = (responseData && responseData.roles)
+    || (responseData && responseData.user && responseData.user.roles)
+    || [];
+
+  const roles = Array.isArray(sourceRoles)
+    ? sourceRoles
+    : [];
+
+  if (role) {
+    roles.push(role);
+  }
+
+  return [...new Set(roles
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean))];
+}
+
 function createServiceAuthProvider() {
   return {
     async loginUser({ email, password }) {
@@ -54,8 +85,12 @@ function createServiceAuthProvider() {
         password: String(password || ''),
       });
 
+      const role = extractRole(response.data);
+
       return {
         email: extractEmail(response.data, normalizedEmail),
+        role,
+        roles: extractRoles(response.data, role),
       };
     },
 

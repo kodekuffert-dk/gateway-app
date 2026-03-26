@@ -12,6 +12,18 @@
     <% } %>
 </head>
 <body>
+  <%
+    const resolvedRole = typeof userRole === 'string' && userRole.trim()
+      ? userRole.trim()
+      : 'Bruger';
+    const formattedRole = resolvedRole
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(' ');
+    const isAdministratorRole = resolvedRole.toLowerCase() === 'administrator';
+  %>
   <% if (typeof showMenu !== 'undefined' && showMenu) { %>
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
       <div class="container-fluid">
@@ -38,7 +50,10 @@
               <a class="nav-link" href="#">Afleveringer</a>
             </li> -->
           </ul>
-          <span class="navbar-text me-2"><%= typeof user !== 'undefined' && user ? user : '' %></span>
+          <div class="navbar-user-meta me-2">
+            <span class="role-badge <%= isAdministratorRole ? 'role-badge-admin' : 'role-badge-default' %>"><%= formattedRole %></span>
+            <span class="navbar-text"><%= typeof user !== 'undefined' && user ? user : '' %></span>
+          </div>
           <a href="/logout" class="btn kuffert-btn-primary ms-2">Log ud</a>
         </div>
       </div>

@@ -34,7 +34,7 @@ const COURSE_DETAIL_HASH = 'course-detail';
 const CREATE_MODE = 'new';
 
 function ensureAdmin(req, res) {
-  if (!isAdminUser(req.session.user)) {
+  if (!isAdminUser(req.session)) {
     res.status(403).send('Kun administratorer har adgang til hold- og kursusadministration');
     return false;
   }

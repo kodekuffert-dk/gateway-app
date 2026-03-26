@@ -22,14 +22,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Helper middleware til layout
 app.use((req, res, next) => {
   res.renderWithLayout = (view, options = {}) => {
+    const sessionUser = req.session && req.session.user ? req.session.user : null;
+    const sessionRole = req.session && req.session.role ? req.session.role : null;
+
     ejs.renderFile(
       path.join(__dirname, 'views', view + '.ejs'),
-      options,
+      {
+        user: sessionUser,
+        userRole: sessionRole,
+        ...options,
+      },
       (err, str) => {
         if (err) return next(err);
         ejs.renderFile(
           path.join(__dirname, 'views', 'layout.ejs'),
-          { ...options, body: str },
+          {
+            user: sessionUser,
+            userRole: sessionRole,
+            ...options,
+            body: str,
+          },
           (err2, html) => {
             if (err2) return next(err2);
             res.send(html);

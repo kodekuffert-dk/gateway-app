@@ -13,8 +13,35 @@ function getCookieOptions() {
   };
 }
 
-function issueSession(res, email) {
-  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+function normalizeRoles(userOrEmail) {
+  if (!userOrEmail || typeof userOrEmail !== 'object' || !Array.isArray(userOrEmail.roles)) {
+    return [];
+  }
+
+  return [...new Set(userOrEmail.roles
+    .map((role) => String(role || '').trim())
+    .filter(Boolean))];
+}
+
+function buildSessionPayload(userOrEmail) {
+  if (typeof userOrEmail === 'string') {
+    return {
+      email: userOrEmail,
+      role: null,
+      roles: [],
+    };
+  }
+
+  return {
+    email: userOrEmail && userOrEmail.email,
+    role: (userOrEmail && userOrEmail.role) || null,
+    roles: normalizeRoles(userOrEmail),
+  };
+}
+
+function issueSession(res, userOrEmail) {
+  const payload = buildSessionPayload(userOrEmail);
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   res.cookie(TOKEN_COOKIE_NAME, token, getCookieOptions());
 }
 
@@ -33,6 +60,8 @@ function jwtSession(req, _res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     req.session.user = payload.email;
+    req.session.role = payload.role || null;
+    req.session.roles = Array.isArray(payload.roles) ? payload.roles : [];
   } catch (_error) {
     req.session = {};
   }

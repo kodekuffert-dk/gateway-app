@@ -8,7 +8,7 @@ router.get('/', (req, res) => {
   res.renderWithLayout('index', {
     title: 'Gateway Login',
     user: req.session.user || null,
-    isAdmin: isAdminUser(req.session.user),
+    isAdmin: isAdminUser(req.session),
     mode: 'login',
     error: null,
     email: '',
@@ -24,7 +24,7 @@ router.get('/dashboard', authenticateStub, (req, res) => {
   res.renderWithLayout('dashboard', {
     title: 'Dashboard',
     user: req.session.user,
-    isAdmin: isAdminUser(req.session.user),
+    isAdmin: isAdminUser(req.session),
     showMenu: true
   });
 });

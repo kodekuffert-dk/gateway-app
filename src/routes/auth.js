@@ -33,7 +33,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const user = await loginUser({ email, password });
 
-    issueSession(res, user.email);
+    issueSession(res, user);
     return res.redirect('/dashboard');
   } catch (error) {
     console.error('Login failed:', error.message);

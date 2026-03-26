@@ -54,7 +54,7 @@ async function renderMarkdownToSafeHtml(markdownContent) {
 }
 
 async function renderArticlesPage(req, res, options = {}) {
-  const isAdmin = isAdminUser(req.session.user);
+  const isAdmin = isAdminUser(req.session);
   const selectedCategoryId = options.selectedCategoryId !== undefined
     ? options.selectedCategoryId
     : (req.query.category || null);
@@ -108,7 +108,7 @@ router.get('/exercises', authenticateStub, (req, res) => {
   res.renderWithLayout('exercises', {
     title: 'Øvelser',
     user: req.session.user,
-    isAdmin: isAdminUser(req.session.user),
+    isAdmin: isAdminUser(req.session),
     showMenu: true
   });
 });
@@ -118,7 +118,7 @@ router.get('/tests', authenticateStub, (req, res) => {
   res.renderWithLayout('tests', {
     title: 'Tests',
     user: req.session.user,
-    isAdmin: isAdminUser(req.session.user),
+    isAdmin: isAdminUser(req.session),
     showMenu: true
   });
 });
@@ -138,7 +138,7 @@ router.get('/articles', authenticateStub, async (req, res, next) => {
 });
 
 router.post('/articles/upload', authenticateStub, (req, res, next) => {
-  if (!isAdminUser(req.session.user)) {
+  if (!isAdminUser(req.session)) {
     return res.status(403).send('Kun administratorer kan uploade artikler');
   }
 
@@ -169,7 +169,7 @@ router.post('/articles/upload', authenticateStub, (req, res, next) => {
 });
 
 router.post('/articles/delete', authenticateStub, async (req, res, next) => {
-  if (!isAdminUser(req.session.user)) {
+  if (!isAdminUser(req.session)) {
     return res.status(403).send('Kun administratorer kan slette artikler');
   }
 
@@ -192,7 +192,7 @@ router.post('/articles/delete', authenticateStub, async (req, res, next) => {
 });
 
 router.post('/categories/create', authenticateStub, async (req, res, next) => {
-  if (!isAdminUser(req.session.user)) {
+  if (!isAdminUser(req.session)) {
     return res.status(403).send('Kun administratorer kan oprette kategorier');
   }
   try {
@@ -208,7 +208,7 @@ router.post('/categories/create', authenticateStub, async (req, res, next) => {
 });
 
 router.post('/categories/delete', authenticateStub, async (req, res, next) => {
-  if (!isAdminUser(req.session.user)) {
+  if (!isAdminUser(req.session)) {
     return res.status(403).send('Kun administratorer kan arkivere kategorier');
   }
   try {

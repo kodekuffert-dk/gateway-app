@@ -91,3 +91,31 @@ button {
 .kuffert-btn:hover {
   background-color: var(--primary-color-hover);
 }
+
+.navbar-user-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+
+.role-badge-admin {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.role-badge-default {
+  background-color: #198754;
+  color: #fff;
+}
