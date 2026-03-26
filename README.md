@@ -57,8 +57,10 @@ Vigtige variabler:
 - `JWT_EXPIRES_IN` - token-levetid, f.eks. `7d` (standard) eller `12h`.
 - `JWT_COOKIE_NAME` - navn på auth-cookie. Standard er `gateway_token`.
 - `SESSION_SECRET` - fallback hvis `JWT_SECRET` ikke er sat.
-- `AUTH_PROVIDER` - vælg auth-provider: `service` eller `dummy` (standard: `dummy`).
-- `AUTH_SERVICE_URL` - base URL til auth-service, f.eks. `http://localhost:8080`.
+- `AUTH_PROVIDER` - vælg auth-provider: `service` eller `dummy` (standard: `service`).
+- `AUTH_SERVICE_URL` - base URL til auth-service, f.eks. `http://localhost:5000`.
+- `AUTH_SERVICE_CLIENT_ID` - client-id sendt som `X-Client-Id` (standard: `gateway-client`).
+- `AUTH_SERVICE_SECRET` - delt hemmelighed til HMAC-signatur i `X-Signature`.
 - `AUTH_SERVICE_LOGIN_PATH` - endpoint path til login. Standard: `/login`.
 - `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/user`.
 - `DATABASE_URL` - connection string til PostgreSQL (default i compose peger på `postgres` service).
