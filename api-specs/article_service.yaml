@@ -1,0 +1,460 @@
+openapi: 3.0.3
+info:
+  title: Article Service API
+  description: |
+    Article management service for the kodekuffert.dk platform.
+
+    ## Responsibilities
+    The service owns the complete article domain:
+    - Articles and metadata
+    - Markdown content
+    - Categories / topics
+    - Persistence and article identifiers
+
+    The gateway handles browser uploads and user-facing rendering.
+    The service stores and returns markdown as the canonical content format.
+
+    ## Authentication
+    Most endpoints require signature-based authentication via the `X-Client-Id`, `X-Signature`, and `X-Timestamp` headers.
+
+    ## Content Format
+    Article content is exchanged as markdown text in JSON payloads.
+    The gateway is responsible for rendering markdown to sanitized HTML.
+  version: 1.0.0
+  contact:
+    name: Kodekuffert.dk Team
+    url: https://github.com/kodekuffert-dk/article-service
+
+servers:
+  - url: http://localhost:6000
+    description: Local development
+  - url: https://articles.kodekuffert.dk
+    description: Production
+
+tags:
+  - name: Articles
+    description: Article management
+  - name: Categories
+    description: Article category management
+  - name: System
+    description: Service health and diagnostics
+
+security:
+  - ClientIdHeader: []
+    SignatureHeader: []
+    TimestampHeader: []
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Returns the health status of the service and its dependencies
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /categories:
+    get:
+      tags:
+        - Categories
+      summary: List categories
+      description: |
+        Returns article categories.
+        By default only active categories are returned.
+      operationId: listCategories
+      parameters:
+        - name: includeArchived
+          in: query
+          required: false
+          description: Include archived categories in the response
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+    post:
+      tags:
+        - Categories
+      summary: Create category
+      description: Creates a new article category
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryDto'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Missing or invalid category name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Category name is required.
+        '409':
+          description: Category already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Category 'Datasikkerhed' already exists.
+
+  /categories/{categoryId}:
+    delete:
+      tags:
+        - Categories
+      summary: Archive category
+      description: Archives a category so it is hidden from default lists but not physically removed
+      operationId: archiveCategory
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          description: Category identifier
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Category archived successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Category archived successfully.
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Category not found.
+
+  /articles:
+    get:
+      tags:
+        - Articles
+      summary: List articles
+      description: |
+        Returns article summaries.
+        Markdown content is not included in the list response.
+      operationId: listArticles
+      parameters:
+        - name: categoryId
+          in: query
+          required: false
+          description: Filter articles by category identifier
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Articles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArticleSummary'
+
+    post:
+      tags:
+        - Articles
+      summary: Create article
+      description: |
+        Creates a new article from markdown content.
+        The gateway is expected to upload the file from the browser and forward the markdown as JSON.
+      operationId: createArticle
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateArticleDto'
+      responses:
+        '201':
+          description: Article created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleSummary'
+        '400':
+          description: Invalid payload or unknown category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missingMarkdown:
+                  summary: Markdown missing
+                  value:
+                    message: Markdown content is required.
+                unknownCategory:
+                  summary: Category not found
+                  value:
+                    message: Category not found.
+
+  /articles/{articleId}:
+    get:
+      tags:
+        - Articles
+      summary: Get article by id
+      description: Returns a single article including markdown content
+      operationId: getArticleById
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          description: Article identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Article retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Article not found.
+
+    delete:
+      tags:
+        - Articles
+      summary: Delete article
+      description: Permanently deletes an article
+      operationId: deleteArticle
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          description: Article identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Article deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Article deleted successfully.
+        '404':
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Article not found.
+
+components:
+  securitySchemes:
+    ClientIdHeader:
+      type: apiKey
+      in: header
+      name: X-Client-Id
+      description: Client identifier for service-to-service requests
+    SignatureHeader:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: Base64 encoded HMAC-SHA256 signature over `{timestamp}.{json-body}`
+    TimestampHeader:
+      type: apiKey
+      in: header
+      name: X-Timestamp
+      description: Unix timestamp in seconds used when creating the signature
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: Healthy
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully.
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Validation failed.
+
+    Category:
+      type: object
+      required:
+        - id
+        - name
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Category identifier
+          example: 5e1c2c0b-b0c7-4f77-8cc3-7a76dc8ef2af
+        name:
+          type: string
+          description: Category name
+          example: Datasikkerhed
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: '2026-03-27T09:15:00.000Z'
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Archive timestamp, null when category is active
+          example: null
+
+    CreateCategoryDto:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Category name
+          minLength: 1
+          example: Datasikkerhed
+
+    ArticleSummary:
+      type: object
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Article identifier owned by the service
+          example: 1773387036063-ssdlc-fase-eksempler
+        title:
+          type: string
+          description: Article title
+          example: SSDLC fase eksempler
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Assigned category identifier
+          example: 5e1c2c0b-b0c7-4f77-8cc3-7a76dc8ef2af
+        categoryName:
+          type: string
+          nullable: true
+          description: Assigned category name
+          example: Datasikkerhed
+        originalFileName:
+          type: string
+          nullable: true
+          description: Original file name received from the gateway
+          example: ssdlc-fase-eksempler.md
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: '2026-03-27T09:20:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: '2026-03-27T09:20:00.000Z'
+
+    Article:
+      allOf:
+        - $ref: '#/components/schemas/ArticleSummary'
+        - type: object
+          required:
+            - markdown
+          properties:
+            markdown:
+              type: string
+              description: Canonical markdown content for the article
+              example: |
+                # SSDLC fase eksempler
+
+                Indhold...
+
+    CreateArticleDto:
+      type: object
+      required:
+        - markdown
+      properties:
+        title:
+          type: string
+          description: Optional article title. If omitted, the service may derive it from markdown or the file name
+          example: SSDLC fase eksempler
+        categoryId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Optional category identifier
+          example: 5e1c2c0b-b0c7-4f77-8cc3-7a76dc8ef2af
+        originalFileName:
+          type: string
+          description: Optional original file name from the browser upload
+          example: ssdlc-fase-eksempler.md
+        markdown:
+          type: string
+          description: Markdown content received from the gateway
+          minLength: 1
+          example: |
+            # SSDLC fase eksempler
+
+            Indhold...
