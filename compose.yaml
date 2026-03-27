@@ -14,15 +14,6 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: ${PORT:-4000}
-      SESSION_SECRET: ${SESSION_SECRET:-change-me}
-      JWT_SECRET: ${JWT_SECRET:-change-me}
-      AUTH_PROVIDER: ${AUTH_PROVIDER:-dummy}
-      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://host.docker.internal:8080}
-      AUTH_SERVICE_LOGIN_PATH: ${AUTH_SERVICE_LOGIN_PATH:-/login}
-      AUTH_SERVICE_REGISTER_PATH: ${AUTH_SERVICE_REGISTER_PATH:-/user}
-      ARTICLES_DIR: ${ARTICLES_DIR:-/app/data/articles}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://gateway:gateway@postgres:5432/gateway}
     restart: unless-stopped
 
   postgres:

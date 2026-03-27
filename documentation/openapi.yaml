@@ -12,7 +12,7 @@ info:
     2. User creates account with whitelisted email
     3. User receives confirmation email
     4. User confirms email via link
-    5. User can log in and receive JWT token
+    5. User can log in and gateway can create its own browser session
     
   version: 1.0.0
   contact:
@@ -139,7 +139,7 @@ paths:
         - Login
       summary: User login
       description: |
-        Authenticates a user and returns a JWT token.
+        Authenticates a user and returns the user data needed by the gateway.
         The user's email must be confirmed before they can log in.
       operationId: login
       requestBody:
@@ -341,10 +341,6 @@ components:
         message:
           type: string
           example: "Login succesfuld"
-        token:
-          type: string
-          description: JWT token for authentication
-          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         id:
           type: string
           format: uuid
@@ -436,11 +432,6 @@ components:
         HMAC-SHA256 signature of the request body using the client secret.
         Required header: `X-Client-Id` with the client identifier.
         
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT token obtained from the login endpoint
 
 security:
   - SignatureAuth: []

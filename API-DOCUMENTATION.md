@@ -133,7 +133,7 @@ GET /user/confirm-email?token=abc123def456&email=student@example.com
 
 ### 4. Login
 
-Autentificerer bruger og returnerer JWT token.
+Autentificerer bruger og returnerer de brugerdata, gatewayen skal bruge til at oprette sin egen session-cookie.
 
 **Endpoint**: `POST /login`
 
@@ -149,7 +149,6 @@ Autentificerer bruger og returnerer JWT token.
 ```json
 {
   "message": "Login succesfuld",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "email": "student@example.com",
   "role": "Student"
@@ -333,19 +332,13 @@ Content-Type: application/json
 ```json
 {
   "message": "Login succesfuld",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "id": "123e4567-e89b-12d3-a456-426614174000",
   "email": "student@example.com",
   "role": "Student"
 }
 ```
 
-### 5️⃣ Bruger bruger JWT token til andre requests
-
-```http
-GET /api/some-protected-resource
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
+Gateway-applikationen opretter herefter sin egen signerede session-cookie til browseren.
 
 ---
 
@@ -362,16 +355,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 }
 ```
 
-### JWT Token Claims
+### Login Response
 ```json
 {
-  "sub": "user@example.com",
-  "jti": "unique-token-id",
-  "nameid": "user-id-guid",
-  "role": "Student",
-  "exp": 1234567890,
-  "iss": "auth_service",
-  "aud": "auth_service_users"
+  "message": "Login succesfuld",
+  "id": "uuid",
+  "email": "string",
+  "role": "Student | Administrator"
 }
 ```
 
@@ -400,11 +390,6 @@ Alle endpoints returnerer standard HTTP status codes:
 # Database
 DB_CONNECTION="Host=auth-db;Port=5432;Database=authdb;Username=authuser;Password=authpassword"
 
-# JWT
-JWT_KEY="your-secret-key-minimum-32-characters"
-JWT_ISSUER="auth_service"
-JWT_AUDIENCE="auth_service_users"
-
 # Email (Production only)
 EMAIL_SMTP_HOST="smtp.gmail.com"
 EMAIL_SMTP_PORT="587"
@@ -424,7 +409,6 @@ ASPNETCORE_ENVIRONMENT="Development | Production"
 I udviklings-miljø:
 - ✅ Mock emails skrives til `mock-emails/` mappen
 - ✅ Ingen rigtige emails sendes
-- ✅ JWT token gælder i 6 timer
 - ✅ Signatur-validering kan bypasses (afhængig af middleware-konfiguration)
 
 ---
@@ -433,7 +417,6 @@ I udviklings-miljø:
 
 I produktion:
 - ✅ Rigtige emails sendes via SMTP
-- ✅ JWT token gælder i 6 timer
 - ✅ Signatur-validering er påkrævet
 - ✅ HTTPS er påkrævet
 

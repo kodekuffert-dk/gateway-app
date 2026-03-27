@@ -48,7 +48,7 @@ docker run --rm -p 4000:4000 -e SESSION_SECRET=change-me gateway-app
 - Kurser tildeles hold (`team_courses`)
 
 ## Konfiguration
-Miljøvariabler kan defineres i `src/.env` (anbefalet), via shell-miljøet eller i `compose.yaml`.
+Miljøvariabler til gateway-app'en defineres i `src/.env` (anbefalet). `compose.yaml` indlæser samme fil via `env_file` og sætter kun `NODE_ENV=production` oveni.
 
 Vigtige variabler:
 
@@ -57,13 +57,13 @@ Vigtige variabler:
 - `JWT_EXPIRES_IN` - token-levetid, f.eks. `7d` (standard) eller `12h`.
 - `JWT_COOKIE_NAME` - navn på auth-cookie. Standard er `gateway_token`.
 - `SESSION_SECRET` - fallback hvis `JWT_SECRET` ikke er sat.
-- `AUTH_PROVIDER` - vælg auth-provider: `service` eller `dummy` (standard: `service`).
+- `AUTH_PROVIDER` - vælg auth-provider: `service` eller `dummy` (standard: `dummy`).
 - `AUTH_SERVICE_URL` - base URL til auth-service, f.eks. `http://localhost:5000`.
 - `AUTH_SERVICE_CLIENT_ID` - client-id sendt som `X-Client-Id` (standard: `gateway-client`).
 - `AUTH_SERVICE_SECRET` - delt hemmelighed til HMAC-signatur i `X-Signature`.
 - `AUTH_SERVICE_LOGIN_PATH` - endpoint path til login. Standard: `/login`.
 - `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/user`.
-- `DATABASE_URL` - connection string til PostgreSQL (default i compose peger på `postgres` service).
+- `DATABASE_URL` - connection string til PostgreSQL. I Docker Compose kan den pege på `postgres` servicen, f.eks. `postgresql://gateway:gateway@postgres:5432/gateway`.
 - `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - konfiguration for PostgreSQL-containeren.
 - Admin-adgang styres via brugerens rolle fra auth-service (f.eks. `Administrator`) og ikke via email-liste i `.env`.
 - `ARTICLES_DIR` - valgfri sti til mappe med Markdown-artikler. Standard er `src/data/articles`.

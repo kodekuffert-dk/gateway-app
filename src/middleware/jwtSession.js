@@ -40,6 +40,8 @@ function buildSessionPayload(userOrEmail) {
 }
 
 function issueSession(res, userOrEmail) {
+  // Gatewayen ejer browser-sessionen og signer sin egen cookie ud fra brugerdata
+  // returneret af auth-provideren.
   const payload = buildSessionPayload(userOrEmail);
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   res.cookie(TOKEN_COOKIE_NAME, token, getCookieOptions());

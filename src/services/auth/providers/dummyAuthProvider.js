@@ -100,10 +100,9 @@ function createDummyAuthProvider() {
           throw createAuthError(403, 'Brugeren er deaktiveret. Kontakt administrator.');
         }
 
-        // Returnerer et dummy-token og brugerens rolle til sessionen.
+        // Returnerer kun brugerdata; gatewayen opretter selv browser-sessionen.
         return {
           message: 'Login succesfuld',
-          token: `dummy-jwt-token-${user.id}`,
           id: user.id,
           email: user.email,
           role: user.role,
