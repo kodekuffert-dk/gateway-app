@@ -26,9 +26,6 @@ coverage
 # nyc test coverage
 .nyc_output
 
-# User data (contains password hashes)
-data/users.json
-
 # Simulerede emails fra dummy auth-provider (lokal udvikling)
 dummy-mail/
 
@@ -141,6 +138,3 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
-# Uploaded markdown articles
-data/articles/
-src/data/articles/

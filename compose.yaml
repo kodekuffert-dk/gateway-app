@@ -7,7 +7,6 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./data:/app/data
       - ./dummy-mail:/app/dummy-mail
     environment:
       NODE_ENV: production
