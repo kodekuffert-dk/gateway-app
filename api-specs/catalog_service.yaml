@@ -1,0 +1,581 @@
+openapi: 3.0.3
+info:
+  title: Catalog Service API
+  description: |
+    Team and course management service for the kodekuffert.dk platform.
+
+    ## Responsibilities
+    The service owns the complete catalog domain:
+    - Courses with title and description
+    - Teams with start/end dates
+    - Team-course assignments
+
+    The gateway calls this service from the admin panel and during CSV whitelist import.
+
+    ## Authentication
+    All endpoints require signature-based authentication via the `X-Client-Id`, `X-Signature`, and `X-Timestamp` headers.
+
+    ## Dates
+    All date fields use the format `YYYY-MM-DD`. Timestamps use ISO 8601 with UTC timezone.
+  version: 1.0.0
+  contact:
+    name: Kodekuffert.dk Team
+    url: https://github.com/kodekuffert-dk/catalog-service
+
+servers:
+  - url: http://localhost:7000
+    description: Local development
+  - url: https://catalog.kodekuffert.dk
+    description: Production
+
+tags:
+  - name: Courses
+    description: Course management
+  - name: Teams
+    description: Team management
+  - name: System
+    description: Service health and diagnostics
+
+security:
+  - ClientIdHeader: []
+    SignatureHeader: []
+    TimestampHeader: []
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Returns the health status of the service and its dependencies
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /courses:
+    get:
+      tags:
+        - Courses
+      summary: List courses
+      description: Returns all courses sorted alphabetically by title
+      operationId: listCourses
+      responses:
+        '200':
+          description: Courses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Course'
+
+    post:
+      tags:
+        - Courses
+      summary: Create course
+      description: Creates a new course
+      operationId: createCourse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCourseDto'
+      responses:
+        '201':
+          description: Course created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '400':
+          description: Missing or invalid title
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Course title is required.
+
+  /courses/{courseId}:
+    put:
+      tags:
+        - Courses
+      summary: Update course
+      description: Updates the title and/or description of an existing course
+      operationId: updateCourse
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: Course identifier
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCourseDto'
+      responses:
+        '200':
+          description: Course updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Course'
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Course not found.
+
+    delete:
+      tags:
+        - Courses
+      summary: Delete course
+      description: Permanently deletes a course. Team assignments are removed automatically.
+      operationId: deleteCourse
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          description: Course identifier
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Course deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Course deleted successfully.
+        '404':
+          description: Course not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Course not found.
+
+  /teams:
+    get:
+      tags:
+        - Teams
+      summary: List teams
+      description: |
+        Returns all teams sorted alphabetically by name.
+        Each team includes the IDs and titles of its assigned courses.
+      operationId: listTeams
+      responses:
+        '200':
+          description: Teams retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Team'
+
+    post:
+      tags:
+        - Teams
+      summary: Create team
+      description: |
+        Creates a new team with optional course assignments.
+        `courseIds` is optional — omit or send an empty array to create a team without courses.
+      operationId: createTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTeamDto'
+      responses:
+        '201':
+          description: Team created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          description: Missing team name or startDate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Team name and startDate are required.
+
+  /teams/ensure:
+    post:
+      tags:
+        - Teams
+      summary: Ensure team by name
+      description: |
+        Returns the existing team with the given name, or creates it if none exists.
+        Name lookup is case-insensitive.
+
+        Used by the gateway during CSV whitelist import, where the team name is
+        provided in the import file and the team may or may not already exist.
+
+        If the team is created and `startDate` is not provided, today's date is used.
+        When the team already exists, `startDate` and `endDate` are ignored.
+      operationId: ensureTeamByName
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EnsureTeamDto'
+      responses:
+        '200':
+          description: Team found or created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TeamSummary'
+        '400':
+          description: Team name is missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Team name is required.
+
+  /teams/{teamId}:
+    put:
+      tags:
+        - Teams
+      summary: Update team
+      description: |
+        Updates name, dates, and course assignments for an existing team.
+        Existing course assignments are fully replaced by the new list.
+      operationId: updateTeam
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Team identifier
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTeamDto'
+      responses:
+        '200':
+          description: Team updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Team not found.
+
+    delete:
+      tags:
+        - Teams
+      summary: Delete team
+      description: Permanently deletes a team. Course assignments are removed automatically.
+      operationId: deleteTeam
+      parameters:
+        - name: teamId
+          in: path
+          required: true
+          description: Team identifier
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Team deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: Team deleted successfully.
+        '404':
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: Team not found.
+
+components:
+  securitySchemes:
+    ClientIdHeader:
+      type: apiKey
+      in: header
+      name: X-Client-Id
+      description: Client identifier for service-to-service requests
+    SignatureHeader:
+      type: apiKey
+      in: header
+      name: X-Signature
+      description: Base64 encoded HMAC-SHA256 signature over `{timestamp}.{json-body}`
+    TimestampHeader:
+      type: apiKey
+      in: header
+      name: X-Timestamp
+      description: Unix timestamp in seconds used when creating the signature
+
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: Healthy
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully.
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: Validation failed.
+
+    Course:
+      type: object
+      required:
+        - id
+        - title
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: Course identifier
+          example: 1
+        title:
+          type: string
+          description: Course title
+          example: Introduktion til IT-sikkerhed
+        description:
+          type: string
+          nullable: true
+          description: Course description
+          example: Grundlæggende begreber inden for IT-sikkerhed og trusselsbilleder.
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: '2026-01-15T10:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: '2026-01-15T10:00:00.000Z'
+
+    CreateCourseDto:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Course title
+          example: Introduktion til IT-sikkerhed
+        description:
+          type: string
+          description: Course description
+          example: Grundlæggende begreber inden for IT-sikkerhed og trusselsbilleder.
+
+    UpdateCourseDto:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          description: Course title
+          example: Introduktion til IT-sikkerhed
+        description:
+          type: string
+          description: Course description
+          example: Opdateret beskrivelse.
+
+    TeamSummary:
+      type: object
+      required:
+        - id
+        - name
+        - startDate
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: Team identifier
+          example: 1
+        name:
+          type: string
+          description: Team name
+          example: Hold A – Forår 2026
+        startDate:
+          type: string
+          format: date
+          description: Team start date (YYYY-MM-DD)
+          example: '2026-02-01'
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Team end date (YYYY-MM-DD), null if ongoing
+          example: '2026-06-30'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-01-20T09:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-01-20T09:00:00.000Z'
+
+    Team:
+      allOf:
+        - $ref: '#/components/schemas/TeamSummary'
+        - type: object
+          required:
+            - courseIds
+            - courses
+          properties:
+            courseIds:
+              type: array
+              items:
+                type: integer
+              description: IDs of assigned courses
+              example: [1, 2]
+            courses:
+              type: array
+              items:
+                type: string
+              description: Titles of assigned courses
+              example:
+                - Introduktion til IT-sikkerhed
+                - SSDLC og sikker softwareudvikling
+
+    CreateTeamDto:
+      type: object
+      required:
+        - name
+        - startDate
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Team name
+          example: Hold A – Forår 2026
+        startDate:
+          type: string
+          format: date
+          description: Team start date (YYYY-MM-DD)
+          example: '2026-02-01'
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Team end date (YYYY-MM-DD)
+          example: '2026-06-30'
+        courseIds:
+          type: array
+          items:
+            type: integer
+          description: Optional list of course IDs to assign to the team
+          example: [1, 2]
+
+    UpdateTeamDto:
+      type: object
+      required:
+        - name
+        - startDate
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Team name
+          example: Hold A – Forår 2026
+        startDate:
+          type: string
+          format: date
+          description: Team start date (YYYY-MM-DD)
+          example: '2026-02-01'
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Team end date (YYYY-MM-DD)
+          example: '2026-06-30'
+        courseIds:
+          type: array
+          items:
+            type: integer
+          description: Full replacement list of course IDs. Existing assignments are overwritten.
+          example: [1]
+
+    EnsureTeamDto:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Team name. Lookup is case-insensitive.
+          example: Hold A – Forår 2026
+        startDate:
+          type: string
+          format: date
+          nullable: true
+          description: Used only if the team is created. Defaults to today if omitted.
+          example: '2026-02-01'
+        endDate:
+          type: string
+          format: date
+          nullable: true
+          description: Used only if the team is created.
+          example: '2026-06-30'
