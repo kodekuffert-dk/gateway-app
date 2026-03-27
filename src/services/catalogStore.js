@@ -1,5 +1,5 @@
-const { createDummyCatalogProvider, normalizeCourseIds } = require('./catalog/providers/dummyCatalogProvider');
-const { createServiceCatalogProvider } = require('./catalog/providers/serviceCatalogProvider');
+const { createDummyCatalogProvider, normalizeCourseIds } = require('./catalogProviders/dummyCatalogProvider');
+const { createServiceCatalogProvider } = require('./catalogProviders/serviceCatalogProvider');
 
 function getProviderName() {
   return String(process.env.CATALOG_PROVIDER || 'dummy').trim().toLowerCase();

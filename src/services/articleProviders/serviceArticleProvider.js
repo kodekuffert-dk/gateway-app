@@ -1,5 +1,5 @@
 const axios = require('axios');
-const crypto = require('crypto');
+const { buildServiceSignatureHeaders } = require('../signatureHeaders');
 
 function getArticleServiceBaseUrl() {
   const raw = String(process.env.ARTICLE_SERVICE_URL || '').trim();
@@ -7,24 +7,13 @@ function getArticleServiceBaseUrl() {
   return raw.replace(/\/+$/, '');
 }
 
-// Bygger de tre service-til-service autentifikationsheadere.
-// Signaturen beregnes over strengen "{timestamp}.{json-body}", som er
-// samme format som gateway-appens buildSignatureHeaders til auth-service.
 function buildArticleServiceSignatureHeaders(body) {
-  const clientId = String(process.env.ARTICLE_SERVICE_CLIENT_ID || 'gateway-client').trim();
-  const clientSecret = String(process.env.ARTICLE_SERVICE_SECRET || '').trim();
-  if (!clientSecret) throw new Error('ARTICLE_SERVICE_SECRET er ikke sat');
-
-  const payload = body === undefined || body === null ? '' : JSON.stringify(body);
-  const timestamp = String(Math.floor(Date.now() / 1000));
-  const message = `${timestamp}.${payload}`;
-  const signature = crypto.createHmac('sha256', clientSecret).update(message, 'utf8').digest('base64');
-
-  return {
-    'X-Client-Id': clientId,
-    'X-Signature': signature,
-    'X-Timestamp': timestamp,
-  };
+  return buildServiceSignatureHeaders({
+    clientId: process.env.ARTICLE_SERVICE_CLIENT_ID || 'gateway-client',
+    clientSecret: process.env.ARTICLE_SERVICE_SECRET || '',
+    body,
+    missingSecretMessage: 'ARTICLE_SERVICE_SECRET er ikke sat',
+  });
 }
 
 // Udpakker fejlbesked fra axios-fejl hvis den findes i response body.

@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { buildSignatureHeaders } = require('../signatureHeaders');
+const { buildServiceSignatureHeaders } = require('../signatureHeaders');
 
 function trimTrailingSlash(value) {
   return String(value || '').replace(/\/+$/, '');
@@ -22,9 +22,20 @@ function getAuthServiceConfig() {
 
   return {
     baseUrl: trimTrailingSlash(baseUrlRaw),
+    clientId: String(process.env.AUTH_SERVICE_CLIENT_ID || 'gateway-client').trim(),
+    clientSecret: String(process.env.AUTH_SERVICE_SECRET || '').trim(),
     loginPath: resolvePath(process.env.AUTH_SERVICE_LOGIN_PATH, '/login'),
     registerPath: resolvePath(process.env.AUTH_SERVICE_REGISTER_PATH, '/user'),
   };
+}
+
+function buildAuthServiceSignatureHeaders(config, body) {
+  return buildServiceSignatureHeaders({
+    clientId: config.clientId,
+    clientSecret: config.clientSecret,
+    body,
+    missingSecretMessage: 'AUTH_SERVICE_SECRET er ikke sat',
+  });
 }
 
 function buildAuthServiceUrl(baseUrl, endpointPath) {
@@ -86,7 +97,7 @@ function createServiceAuthProvider() {
       };
 
       const response = await axios.post(url, payload, {
-        headers: buildSignatureHeaders(payload),
+        headers: buildAuthServiceSignatureHeaders(config, payload),
       });
 
       const role = extractRole(response.data);
@@ -108,7 +119,7 @@ function createServiceAuthProvider() {
       };
 
       const response = await axios.post(url, payload, {
-        headers: buildSignatureHeaders(payload),
+        headers: buildAuthServiceSignatureHeaders(config, payload),
       });
 
       return {

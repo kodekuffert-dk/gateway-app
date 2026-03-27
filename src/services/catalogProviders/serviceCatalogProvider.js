@@ -1,5 +1,5 @@
 const axios = require('axios');
-const crypto = require('crypto');
+const { buildServiceSignatureHeaders } = require('../signatureHeaders');
 const { normalizeCourseIds } = require('./dummyCatalogProvider');
 
 function getCatalogServiceBaseUrl() {
@@ -9,20 +9,12 @@ function getCatalogServiceBaseUrl() {
 }
 
 function buildCatalogServiceSignatureHeaders(body) {
-  const clientId = String(process.env.CATALOG_SERVICE_CLIENT_ID || 'gateway-client').trim();
-  const clientSecret = String(process.env.CATALOG_SERVICE_SECRET || '').trim();
-  if (!clientSecret) throw new Error('CATALOG_SERVICE_SECRET er ikke sat');
-
-  const payload = body === undefined || body === null ? '' : JSON.stringify(body);
-  const timestamp = String(Math.floor(Date.now() / 1000));
-  const message = `${timestamp}.${payload}`;
-  const signature = crypto.createHmac('sha256', clientSecret).update(message, 'utf8').digest('base64');
-
-  return {
-    'X-Client-Id': clientId,
-    'X-Signature': signature,
-    'X-Timestamp': timestamp,
-  };
+  return buildServiceSignatureHeaders({
+    clientId: process.env.CATALOG_SERVICE_CLIENT_ID || 'gateway-client',
+    clientSecret: process.env.CATALOG_SERVICE_SECRET || '',
+    body,
+    missingSecretMessage: 'CATALOG_SERVICE_SECRET er ikke sat',
+  });
 }
 
 function extractServiceMessage(error, fallback) {

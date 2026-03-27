@@ -1,5 +1,5 @@
-const { createServiceWhitelistProvider } = require('./auth/providers/serviceWhitelistProvider');
-const { createDummyWhitelistProvider } = require('./auth/providers/dummyWhitelistProvider');
+const { createServiceWhitelistProvider } = require('./authProviders/serviceWhitelistProvider');
+const { createDummyWhitelistProvider } = require('./authProviders/dummyWhitelistProvider');
 
 function getProviderName() {
   return String(process.env.AUTH_PROVIDER || 'dummy').trim().toLowerCase();

@@ -1,5 +1,5 @@
-const { createDummyArticleProvider } = require('./article/providers/dummyArticleProvider');
-const { createServiceArticleProvider } = require('./article/providers/serviceArticleProvider');
+const { createDummyArticleProvider } = require('./articleProviders/dummyArticleProvider');
+const { createServiceArticleProvider } = require('./articleProviders/serviceArticleProvider');
 
 function getProviderName() {
   return String(process.env.ARTICLE_PROVIDER || 'dummy').trim().toLowerCase();

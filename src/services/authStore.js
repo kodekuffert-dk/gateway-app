@@ -1,5 +1,5 @@
-const { createServiceAuthProvider } = require('./auth/providers/serviceAuthProvider');
-const { createDummyAuthProvider } = require('./auth/providers/dummyAuthProvider');
+const { createServiceAuthProvider } = require('./authProviders/serviceAuthProvider');
+const { createDummyAuthProvider } = require('./authProviders/dummyAuthProvider');
 
 function getProviderName() {
   return String(process.env.AUTH_PROVIDER || 'dummy').trim().toLowerCase();

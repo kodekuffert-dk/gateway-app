@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { buildSignatureHeaders } = require('../signatureHeaders');
+const { buildServiceSignatureHeaders } = require('../signatureHeaders');
 
 // Læser og normaliserer base-URL til auth-servicen.
 // Kaster hvis AUTH_SERVICE_URL ikke er sat, da service-provideren ikke kan fungere uden.
@@ -7,6 +7,15 @@ function getAuthServiceBaseUrl() {
   const raw = String(process.env.AUTH_SERVICE_URL || '').trim();
   if (!raw) throw new Error('AUTH_SERVICE_URL er ikke sat');
   return raw.replace(/\/+$/, '');
+}
+
+function buildAuthServiceSignatureHeaders(body) {
+  return buildServiceSignatureHeaders({
+    clientId: process.env.AUTH_SERVICE_CLIENT_ID || 'gateway-client',
+    clientSecret: process.env.AUTH_SERVICE_SECRET || '',
+    body,
+    missingSecretMessage: 'AUTH_SERVICE_SECRET er ikke sat',
+  });
 }
 
 // Returnerer en whitelist-provider, der delegerer til auth-servicens whitelist-API.
@@ -17,7 +26,7 @@ function createServiceWhitelistProvider() {
     async getWhitelist() {
       const baseUrl = getAuthServiceBaseUrl();
       const response = await axios.get(`${baseUrl}/whitelist`, {
-        headers: buildSignatureHeaders(null),
+        headers: buildAuthServiceSignatureHeaders(null),
       });
       return Array.isArray(response.data) ? response.data : [];
     },
@@ -27,7 +36,7 @@ function createServiceWhitelistProvider() {
       const baseUrl = getAuthServiceBaseUrl();
       const payload = { teamName, emails };
       const response = await axios.post(`${baseUrl}/whitelist`, payload, {
-        headers: buildSignatureHeaders(payload),
+        headers: buildAuthServiceSignatureHeaders(payload),
       });
       return response.data;
     },
@@ -37,7 +46,7 @@ function createServiceWhitelistProvider() {
       const baseUrl = getAuthServiceBaseUrl();
       const payload = { emails };
       const response = await axios.delete(`${baseUrl}/whitelist`, {
-        headers: buildSignatureHeaders(payload),
+        headers: buildAuthServiceSignatureHeaders(payload),
         data: payload,
       });
       return response.data;

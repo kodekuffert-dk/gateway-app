@@ -18,7 +18,7 @@ const {
 
 // Mappe til simulerede bekræftelsesemails — ligger uden for src/ så den ikke
 // pakkes med i builds, og er tilføjet til .gitignore.
-const DUMMY_MAIL_DIR = path.join(__dirname, '..', '..', '..', '..', 'dummy-mail');
+const DUMMY_MAIL_DIR = path.join(__dirname, '..', '..', '..', 'dummy-mail');
 
 // Genererer et simpelt token der simulerer det token auth-servicen ville sende.
 function generateDummyToken() {
