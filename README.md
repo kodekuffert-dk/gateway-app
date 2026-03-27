@@ -43,9 +43,7 @@ docker run --rm -p 4000:4000 -e SESSION_SECRET=change-me gateway-app
 - Mulighed for mock-services under udvikling
 - Artikelside med visning af Markdown-artikler for alle loggede brugere
 - Upload af Markdown-artikler for administratorer
-- Hold i egen tabel (`teams`) med startdato og slutdato
-- Kurser i egen tabel (`courses`) med titel og beskrivelse
-- Kurser tildeles hold (`team_courses`)
+- Hold- og kursusadministration via catalog-service (eller dummy-provider)
 
 ## Konfiguration
 Miljøvariabler til gateway-app'en defineres i `src/.env` (anbefalet). `compose.yaml` indlæser samme fil via `env_file` og sætter kun `NODE_ENV=production` oveni.
@@ -63,10 +61,15 @@ Vigtige variabler:
 - `AUTH_SERVICE_SECRET` - delt hemmelighed til HMAC-signatur i `X-Signature`.
 - `AUTH_SERVICE_LOGIN_PATH` - endpoint path til login. Standard: `/login`.
 - `AUTH_SERVICE_REGISTER_PATH` - endpoint path til oprettelse. Standard: `/user`.
-- `DATABASE_URL` - connection string til PostgreSQL. I Docker Compose kan den pege på `postgres` servicen, f.eks. `postgresql://gateway:gateway@postgres:5432/gateway`.
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` - konfiguration for PostgreSQL-containeren.
+- `ARTICLE_PROVIDER` - vælg article-provider: `service` eller `dummy` (standard: `dummy`).
+- `ARTICLE_SERVICE_URL` - base URL til article-service, f.eks. `http://localhost:6000`.
+- `ARTICLE_SERVICE_CLIENT_ID` - client-id sendt som `X-Client-Id`.
+- `ARTICLE_SERVICE_SECRET` - delt hemmelighed til HMAC-signatur i `X-Signature`.
+- `CATALOG_PROVIDER` - vælg catalog-provider: `service` eller `dummy` (standard: `dummy`).
+- `CATALOG_SERVICE_URL` - base URL til catalog-service, f.eks. `http://localhost:7000`.
+- `CATALOG_SERVICE_CLIENT_ID` - client-id sendt som `X-Client-Id`.
+- `CATALOG_SERVICE_SECRET` - delt hemmelighed til HMAC-signatur i `X-Signature`.
 - Admin-adgang styres via brugerens rolle fra auth-service (f.eks. `Administrator`) og ikke via email-liste i `.env`.
-- `ARTICLES_DIR` - valgfri sti til mappe med Markdown-artikler. Standard er `src/data/articles`.
 
 ## Auth provider (interface-agtig struktur)
 `authStore` fungerer som et lille interface-lag med to providers:
@@ -81,12 +84,10 @@ Dummy-brugere:
 
 Dummy-provider accepterer kun brugere, der findes i den hardcodede `DUMMY_USERS`-liste.
 
-## Databasemigrering (eksisterende data)
-Hvis du allerede har en kørende Postgres-volume, kan schema-migreringen køres manuelt:
+## Catalog og Article providers
+Gateway-app'en følger samme provider-mønster for content-domæner:
 
-```bash
-docker compose exec -T postgres psql -U gateway -d gateway < db/migrations/002_normalize_teams_courses.sql
+- `articleStore`: skifter mellem `dummy` (in-memory) og `service` (ekstern article-service)
+- `catalogStore`: skifter mellem `dummy` (in-memory) og `service` (ekstern catalog-service)
 
-# Fjern lokal brugerdata fra gateway-databasen
-docker compose exec -T postgres psql -U gateway -d gateway < db/migrations/004_drop_gateway_users.sql
-```
+I `dummy`-tilstand kan app'en køre uden lokal database-container.

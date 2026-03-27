@@ -1,206 +1,83 @@
-const { query, withTransaction } = require('./db');
+const { createDummyCatalogProvider, normalizeCourseIds } = require('./catalog/providers/dummyCatalogProvider');
+const { createServiceCatalogProvider } = require('./catalog/providers/serviceCatalogProvider');
 
-function normalizeNullableDate(value) {
-  const trimmed = String(value || '').trim();
-  return trimmed || null;
+function getProviderName() {
+  return String(process.env.CATALOG_PROVIDER || 'dummy').trim().toLowerCase();
 }
 
-function normalizeTeamName(value) {
-  return String(value || '').trim();
+function createCatalogProvider() {
+  const providerName = getProviderName();
+
+  if (providerName === 'dummy') {
+    return createDummyCatalogProvider();
+  }
+
+  return createServiceCatalogProvider();
 }
 
-function getDefaultTeamStartDate() {
-  return new Date().toISOString().slice(0, 10);
+const catalogProvider = createCatalogProvider();
+
+function assertCatalogProviderContract(provider) {
+  const required = [
+    'listTeams',
+    'findTeamByName',
+    'createTeam',
+    'ensureTeamByName',
+    'updateTeam',
+    'deleteTeam',
+    'listCourses',
+    'createCourse',
+    'updateCourse',
+    'deleteCourse',
+  ];
+
+  for (const fn of required) {
+    if (typeof provider[fn] !== 'function') {
+      throw new Error(`Catalog provider mangler ${fn}`);
+    }
+  }
 }
+
+assertCatalogProviderContract(catalogProvider);
 
 async function listTeams() {
-  const result = await query(
-    `
-      SELECT
-        t.id,
-        t.name,
-        t.start_date AS "startDate",
-        t.end_date AS "endDate",
-        COALESCE(ARRAY_AGG(tc.course_id) FILTER (WHERE tc.course_id IS NOT NULL), '{}') AS "courseIds",
-        COALESCE(ARRAY_AGG(c.title) FILTER (WHERE c.title IS NOT NULL), '{}') AS courses,
-        t.created_at AS "createdAt",
-        t.updated_at AS "updatedAt"
-      FROM teams t
-      LEFT JOIN team_courses tc ON tc.team_id = t.id
-      LEFT JOIN courses c ON c.id = tc.course_id
-      GROUP BY t.id
-      ORDER BY t.name ASC
-    `
-  );
-  return result.rows;
+  return catalogProvider.listTeams();
 }
 
-async function findTeamByName(name, client = null) {
-  const normalizedName = normalizeTeamName(name);
-  if (!normalizedName) {
-    return null;
-  }
-
-  const executor = client || { query };
-  const result = await executor.query(
-    `
-      SELECT
-        t.id,
-        t.name,
-        t.start_date AS "startDate",
-        t.end_date AS "endDate",
-        t.created_at AS "createdAt",
-        t.updated_at AS "updatedAt"
-      FROM teams t
-      WHERE LOWER(t.name) = LOWER($1)
-      LIMIT 1
-    `,
-    [normalizedName]
-  );
-
-  return result.rows[0] || null;
+async function findTeamByName(name) {
+  return catalogProvider.findTeamByName(name);
 }
 
-function normalizeCourseIds(courseIdsInput) {
-  if (!Array.isArray(courseIdsInput)) {
-    if (!courseIdsInput) {
-      return [];
-    }
-    return [Number(courseIdsInput)].filter((id) => Number.isInteger(id) && id > 0);
-  }
-
-  return courseIdsInput
-    .map((id) => Number(id))
-    .filter((id) => Number.isInteger(id) && id > 0);
-}
-
-async function createTeam({ name, startDate, endDate, courseIds }) {
-  const normalizedCourseIds = normalizeCourseIds(courseIds);
-  return withTransaction(async (client) => {
-    const inserted = await client.query(
-      `
-        INSERT INTO teams (name, start_date, end_date)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, start_date AS "startDate", end_date AS "endDate"
-      `,
-      [String(name || '').trim(), normalizeNullableDate(startDate), normalizeNullableDate(endDate)]
-    );
-    const team = inserted.rows[0];
-
-    for (const courseId of normalizedCourseIds) {
-      await client.query(
-        'INSERT INTO team_courses (team_id, course_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [team.id, courseId]
-      );
-    }
-
-    return team;
-  });
+async function createTeam(args) {
+  return catalogProvider.createTeam(args);
 }
 
 async function ensureTeamByName(name, defaults = {}) {
-  const normalizedName = normalizeTeamName(name);
-  if (!normalizedName) {
-    throw new Error('Holdnavn mangler');
-  }
-
-  return withTransaction(async (client) => {
-    const existingTeam = await findTeamByName(normalizedName, client);
-    if (existingTeam) {
-      return existingTeam;
-    }
-
-    const inserted = await client.query(
-      `
-        INSERT INTO teams (name, start_date, end_date)
-        VALUES ($1, $2, $3)
-        RETURNING id, name, start_date AS "startDate", end_date AS "endDate"
-      `,
-      [
-        normalizedName,
-        normalizeNullableDate(defaults.startDate) || getDefaultTeamStartDate(),
-        normalizeNullableDate(defaults.endDate),
-      ]
-    );
-
-    return inserted.rows[0];
-  });
+  return catalogProvider.ensureTeamByName(name, defaults);
 }
 
-async function updateTeam({ id, name, startDate, endDate, courseIds }) {
-  const normalizedCourseIds = normalizeCourseIds(courseIds);
-  return withTransaction(async (client) => {
-    const result = await client.query(
-      `
-        UPDATE teams
-        SET name = $2,
-            start_date = $3,
-            end_date = $4,
-            updated_at = NOW()
-        WHERE id = $1
-        RETURNING id, name, start_date AS "startDate", end_date AS "endDate"
-      `,
-      [id, String(name || '').trim(), normalizeNullableDate(startDate), normalizeNullableDate(endDate)]
-    );
-
-    if (result.rowCount === 0) {
-      return null;
-    }
-
-    await client.query('DELETE FROM team_courses WHERE team_id = $1', [id]);
-    for (const courseId of normalizedCourseIds) {
-      await client.query(
-        'INSERT INTO team_courses (team_id, course_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [id, courseId]
-      );
-    }
-
-    return result.rows[0];
-  });
+async function updateTeam(args) {
+  return catalogProvider.updateTeam(args);
 }
 
 async function deleteTeam(id) {
-  const result = await query('DELETE FROM teams WHERE id = $1 RETURNING id', [id]);
-  return result.rows[0] || null;
+  return catalogProvider.deleteTeam(id);
 }
 
 async function listCourses() {
-  const result = await query(
-    'SELECT id, title, description, created_at AS "createdAt", updated_at AS "updatedAt" FROM courses ORDER BY title ASC'
-  );
-  return result.rows;
+  return catalogProvider.listCourses();
 }
 
-async function createCourse({ title, description }) {
-  const result = await query(
-    `
-      INSERT INTO courses (title, description)
-      VALUES ($1, $2)
-      RETURNING id, title, description
-    `,
-    [String(title || '').trim(), String(description || '').trim()]
-  );
-  return result.rows[0];
+async function createCourse(args) {
+  return catalogProvider.createCourse(args);
 }
 
-async function updateCourse({ id, title, description }) {
-  const result = await query(
-    `
-      UPDATE courses
-      SET title = $2,
-          description = $3,
-          updated_at = NOW()
-      WHERE id = $1
-      RETURNING id, title, description
-    `,
-    [id, String(title || '').trim(), String(description || '').trim()]
-  );
-  return result.rows[0] || null;
+async function updateCourse(args) {
+  return catalogProvider.updateCourse(args);
 }
 
 async function deleteCourse(id) {
-  const result = await query('DELETE FROM courses WHERE id = $1 RETURNING id', [id]);
-  return result.rows[0] || null;
+  return catalogProvider.deleteCourse(id);
 }
 
 module.exports = {
@@ -215,4 +92,5 @@ module.exports = {
   updateCourse,
   deleteCourse,
   normalizeCourseIds,
+  getProviderName,
 };
