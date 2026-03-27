@@ -7,14 +7,12 @@ const {
   listArticles,
   getArticleById,
   createArticleFromUpload,
-  deleteArticleById
-} = require('../services/articleStore');
-const {
+  deleteArticleById,
   listActiveCategories,
   listAllCategories,
   createCategory,
-  softDeleteCategory
-} = require('../services/categoryStore');
+  softDeleteCategory,
+} = require('../services/articleStore');
 const { isAdminUser } = require('../utils/admin');
 
 const upload = multer({
