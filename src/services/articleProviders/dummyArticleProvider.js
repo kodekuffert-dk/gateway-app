@@ -77,7 +77,7 @@ via en quiz-app, der udnyttede daværende API-adgang til venners data uden disse
 - Facebook fik milliardbøde fra FTC ($5 mia.)
 - Øget regulatorisk fokus på samtykke og dataminimering (GDPR)
 
-## Læringspointer
+## Læringspunkter
 
 Adgangskontrol skal håndhæves teknisk og ikke kun aftalemæssigt.
 Tredjeparters brug af data skal begrænses og overvåges aktivt.
