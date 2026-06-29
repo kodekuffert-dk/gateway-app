@@ -135,6 +135,16 @@ router.get('/articles', authenticateStub, async (req, res, next) => {
   }
 });
 
+// Prøver
+router.get('/exams', authenticateStub, (req, res) => {
+  res.renderWithLayout('exams', {
+    title: 'Prøver',
+    user: req.session.user,
+    isAdmin: isAdminUser(req.session),
+    showMenu: true
+  });
+});
+
 router.post('/articles/upload', authenticateStub, (req, res, next) => {
   if (!isAdminUser(req.session)) {
     return res.status(403).send('Kun administratorer kan uploade artikler');
